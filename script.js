@@ -395,135 +395,140 @@
                 document.body.style.overflow = '';
             }
             
-            async function sendOrder() {
-                if (cart.length === 0) {
-                    alert('Por favor, adicione produtos ao seu pedido antes de continuar.');
-                    return;
-                }
-                
-                // Get form data
-                const name = document.getElementById('customerName').value;
-                const phone = document.getElementById('customerPhone').value;
-                const address = document.getElementById('customerAddress').value;
-                const reference = document.getElementById('customerReference').value;
-                const notes = document.getElementById('customerNotes').value;
-                
-                // Validate required fields
-                if (!name || !phone || !address) {
-                    alert('Por favor, preencha todos os campos obrigatórios (nome, telefone e endereço).');
-                    return;
-                }
-                
-                // Calcular valor total
-                const totalAmount = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
-                const totalItemCount = cart.reduce((total, item) => total + item.quantity, 0);
-                
-                // Mostrar loading
-                document.body.style.cursor = 'wait';
-                orderModal.style.pointerEvents = 'none';
-                
-                try {
-                    // Dados para salvar no banco de dados
-                    const pedido = {
-                        cliente: name,
-                        telefone: phone,
-                        endereco: address,
-                        referencia: reference || null,
-                        observacoes: notes || null,
-                        itens: JSON.stringify(cart),
-                        total_itens: totalItemCount,
-                        valor_total: totalAmount,
-                        status: 'novo',
-                        data_pedido: new Date().toISOString()
-                    };
-                    
-                    // Salvar pedido no banco de dados
-                    const savedOrder = await window.dbFunctions.adicionarPedido(pedido);
-                    
-                    if (!savedOrder) {
-                        throw new Error('Erro ao salvar o pedido no banco de dados.');
-                    }
-                    
-                    // Gerar link de rastreio
-                    const baseUrl = window.location.origin;
-                    const trackingUrl = `${baseUrl}/tracking.html?id=${savedOrder.id}`;
-                    
-                    // Prepare message for WhatsApp
-                    let message = `*NOVO PEDIDO - DELÍCIA D'BROWNIE*\n\n`;
-                    message += `*Cliente:* ${name}\n`;
-                    message += `*Telefone:* ${phone}\n`;
-                    message += `*Endereço:* ${address}\n`;
-                    
-                    if (reference) {
-                        message += `*Ponto de Referência:* ${reference}\n`;
-                    }
-                    
-                    message += `\n*ITENS DO PEDIDO:*\n`;
-                    
-                    // Group items by section
-                    const groupedItems = {};
-                    
-                    cart.forEach(item => {
-                        if (!groupedItems[item.section]) {
-                            groupedItems[item.section] = [];
-                        }
-                        
-                        groupedItems[item.section].push(item);
-                    });
-                    
-                    // Add items to message by section
-                    for (const section in groupedItems) {
-                        message += `\n*${section}:*\n`;
-                        
-                        groupedItems[section].forEach(item => {
-                            const itemTotal = (item.price * item.quantity).toFixed(2);
-                            message += `• ${item.quantity}x ${item.title} - R$ ${itemTotal}\n`;
-                        });
-                    }
-                    
-                    // Add notes if any
-                    if (notes) {
-                        message += `\n*Observações:* ${notes}\n`;
-                    }
-                    
-                    // Total items and amount
-                    message += `\n*Total de Itens:* ${totalItemCount}`;
-                    message += `\n*Valor Total:* R$ ${totalAmount.toFixed(2)}`;
-                    
-                    // Add tracking link
-                    message += `\n\n*Rastreie seu pedido:*\n${trackingUrl}`;
-                    
-                    // Atualizar a mensagem no banco de dados
-                    await window.dbFunctions.atualizarPedido(savedOrder.id, {
-                        mensagem: message
-                    });
-                    
-                    // Encode the message for WhatsApp
-                    const encodedMessage = encodeURIComponent(message);
-                    const whatsappUrl = `https://wa.me/5541992480604?text=${encodedMessage}`;
-                    
-                    // Open WhatsApp in a new tab
-                    window.open(whatsappUrl, '_blank');
-                    
-                    // Abrir página de rastreamento em uma nova aba
-                    window.open(trackingUrl, '_blank');
-                    
-                    // Limpar carrinho após o pedido bem-sucedido
-                    cart = [];
-                    updateCartCount();
-                    updateCartItems();
-                    orderForm.reset();
-                    closeModal();
-                    
-                    // Mostrar mensagem de sucesso
-                    alert('Pedido enviado com sucesso! Você pode acompanhar o status do seu pedido pelo link enviado.');
-                } catch (error) {
-                    console.error('Erro ao enviar pedido:', error);
-                    alert('Houve um erro ao processar seu pedido. Por favor, tente novamente.');
-                } finally {
-                    // Resetar cursor e habilitar interação
-                    document.body.style.cursor = 'default';
-                    orderModal.style.pointerEvents = 'auto';
-                }
+           // Modifique a função sendOrder() no script.js, especificamente a parte onde 
+// o link de rastreamento é gerado e aberto
+
+async function sendOrder() {
+    if (cart.length === 0) {
+        alert('Por favor, adicione produtos ao seu pedido antes de continuar.');
+        return;
+    }
+    
+    // Get form data
+    const name = document.getElementById('customerName').value;
+    const phone = document.getElementById('customerPhone').value;
+    const address = document.getElementById('customerAddress').value;
+    const reference = document.getElementById('customerReference').value;
+    const notes = document.getElementById('customerNotes').value;
+    
+    // Validate required fields
+    if (!name || !phone || !address) {
+        alert('Por favor, preencha todos os campos obrigatórios (nome, telefone e endereço).');
+        return;
+    }
+    
+    // Calcular valor total
+    const totalAmount = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+    const totalItemCount = cart.reduce((total, item) => total + item.quantity, 0);
+    
+    // Mostrar loading
+    document.body.style.cursor = 'wait';
+    orderModal.style.pointerEvents = 'none';
+    
+    try {
+        // Dados para salvar no banco de dados
+        const pedido = {
+            cliente: name,
+            telefone: phone,
+            endereco: address,
+            referencia: reference || null,
+            observacoes: notes || null,
+            itens: JSON.stringify(cart),
+            total_itens: totalItemCount,
+            valor_total: totalAmount,
+            status: 'novo',
+            data_pedido: new Date().toISOString()
+        };
+        
+        // Salvar pedido no banco de dados
+        const savedOrder = await window.dbFunctions.adicionarPedido(pedido);
+        
+        if (!savedOrder) {
+            throw new Error('Erro ao salvar o pedido no banco de dados.');
+        }
+        
+        // MODIFICAÇÃO AQUI: Usar URL base do GitHub
+        // Obter nome do repositório a partir da URL atual
+        const currentUrl = window.location.href;
+        const repoBaseUrl = currentUrl.substring(0, currentUrl.lastIndexOf('/') + 1);
+        const trackingUrl = `${repoBaseUrl}tracking.html?id=${savedOrder.id}`;
+        
+        // Prepare message for WhatsApp
+        let message = `*NOVO PEDIDO - DELÍCIA D'BROWNIE*\n\n`;
+        message += `*Cliente:* ${name}\n`;
+        message += `*Telefone:* ${phone}\n`;
+        message += `*Endereço:* ${address}\n`;
+        
+        if (reference) {
+            message += `*Ponto de Referência:* ${reference}\n`;
+        }
+        
+        message += `\n*ITENS DO PEDIDO:*\n`;
+        
+        // Group items by section
+        const groupedItems = {};
+        
+        cart.forEach(item => {
+            if (!groupedItems[item.section]) {
+                groupedItems[item.section] = [];
             }
+            
+            groupedItems[item.section].push(item);
+        });
+        
+        // Add items to message by section
+        for (const section in groupedItems) {
+            message += `\n*${section}:*\n`;
+            
+            groupedItems[section].forEach(item => {
+                const itemTotal = (item.price * item.quantity).toFixed(2);
+                message += `• ${item.quantity}x ${item.title} - R$ ${itemTotal}\n`;
+            });
+        }
+        
+        // Add notes if any
+        if (notes) {
+            message += `\n*Observações:* ${notes}\n`;
+        }
+        
+        // Total items and amount
+        message += `\n*Total de Itens:* ${totalItemCount}`;
+        message += `\n*Valor Total:* R$ ${totalAmount.toFixed(2)}`;
+        
+        // Add tracking link
+        message += `\n\n*Rastreie seu pedido:*\n${trackingUrl}`;
+        
+        // Atualizar a mensagem no banco de dados
+        await window.dbFunctions.atualizarPedido(savedOrder.id, {
+            mensagem: message
+        });
+        
+        // Encode the message for WhatsApp
+        const encodedMessage = encodeURIComponent(message);
+        const whatsappUrl = `https://wa.me/5541992480604?text=${encodedMessage}`;
+        
+        // Open WhatsApp in a new tab
+        window.open(whatsappUrl, '_blank');
+        
+        // Abrir página de rastreamento em uma nova aba
+        window.open(trackingUrl, '_blank');
+        
+        // Limpar carrinho após o pedido bem-sucedido
+        cart = [];
+        updateCartCount();
+        updateCartItems();
+        orderForm.reset();
+        closeModal();
+        
+        // Mostrar mensagem de sucesso
+        alert('Pedido enviado com sucesso! Você pode acompanhar o status do seu pedido pelo link enviado.');
+    } catch (error) {
+        console.error('Erro ao enviar pedido:', error);
+        alert('Houve um erro ao processar seu pedido. Por favor, tente novamente.');
+    } finally {
+        // Resetar cursor e habilitar interação
+        document.body.style.cursor = 'default';
+        orderModal.style.pointerEvents = 'auto';
+    }
+}
         });
