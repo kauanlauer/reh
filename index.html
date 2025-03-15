@@ -336,6 +336,84 @@
             <p class="copyright">© 2025 Delícia D'Brownie - Todos os direitos reservados</p>
         </div>
     </footer>
+
+<!-- Adicionar ao final do body, antes dos scripts -->
+
+<!-- Floating Cart Button -->
+<div class="cart-button">
+  <span class="cart-count">0</span>
+  <i class="fas fa-shopping-cart"></i>
+</div>
+
+<!-- Order Modal -->
+<div class="order-modal" id="orderModal">
+  <div class="modal-content">
+      <div class="modal-header">
+          <h3>Seu Pedido</h3>
+          <button class="close-modal"><i class="fas fa-times"></i></button>
+      </div>
+      
+      <div class="modal-body">
+          <!-- Cart Items -->
+          <div class="cart-items">
+              <div class="cart-empty">
+                  <i class="far fa-sad-tear"></i>
+                  <p>Seu carrinho está vazio</p>
+                  <p class="cart-tip">Clique em "Adicionar ao Pedido" nos produtos que desejar</p>
+              </div>
+              <div class="cart-list">
+                  <!-- Items will be added here -->
+              </div>
+          </div>
+          
+          <!-- Customer Info Form -->
+          <form id="orderForm" class="order-form">
+              <h4>Informações para Entrega</h4>
+              
+              <div class="form-group">
+                  <label for="customerName">Nome completo</label>
+                  <input type="text" id="customerName" required>
+              </div>
+              
+              <div class="form-group">
+                  <label for="customerPhone">Telefone</label>
+                  <input type="tel" id="customerPhone" required>
+              </div>
+              
+              <div class="form-group">
+                  <label for="customerAddress">Endereço</label>
+                  <input type="text" id="customerAddress" placeholder="Rua, número, bairro" required>
+              </div>
+              
+              <div class="form-group">
+                  <label for="customerReference">Ponto de referência (opcional)</label>
+                  <input type="text" id="customerReference">
+              </div>
+              
+              <div class="form-group">
+                  <label for="customerNotes">Observações (opcional)</label>
+                  <textarea id="customerNotes" rows="2"></textarea>
+              </div>
+              
+              <div class="cart-total">
+                  <span>Total de itens:</span>
+                  <span class="total-items">0</span>
+              </div>
+              
+              <button type="submit" class="order-submit-btn">
+                  <i class="fab fa-whatsapp"></i> Enviar Pedido pelo WhatsApp
+              </button>
+          </form>
+      </div>
+  </div>
+</div>
+
+<!-- Add to Cart Button for each menu item -->
+<!-- Add this code inside each .menu-item, just before the closing div -->
+<button class="add-to-cart-btn">
+  <i class="fas fa-plus"></i> Adicionar ao Pedido
+</button>
+
     
     <!-- Font Awesome -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
