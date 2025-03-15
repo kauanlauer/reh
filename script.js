@@ -1,42 +1,21 @@
-// Gerenciamento das abas do cardápio
 document.addEventListener('DOMContentLoaded', function() {
-    const tabButtons = document.querySelectorAll('.tab-btn');
-    
-    tabButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            // Remove a classe active de todos os botões
-            tabButtons.forEach(btn => btn.classList.remove('active'));
-            
-            // Adiciona a classe active ao botão clicado
-            this.classList.add('active');
-            
-            // Esconde todos os conteúdos de abas
-            const tabContents = document.querySelectorAll('.tab-content');
-            tabContents.forEach(content => content.style.display = 'none');
-            
-            // Mostra o conteúdo da aba selecionada
-            const tabId = this.getAttribute('data-tab');
-            document.getElementById(tabId).style.display = 'block';
-        });
+    // Fade-in animations
+    const fadeElements = document.querySelectorAll('.fade-in');
+    fadeElements.forEach(element => {
+        element.classList.add('active');
     });
     
-    // Adiciona efeito de hover aos itens do menu
-    const menuItems = document.querySelectorAll('.menu-item');
-    
-    menuItems.forEach(item => {
-        item.addEventListener('mouseenter', function() {
-            this.style.transform = 'translateY(-3px)';
-            this.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.1)';
-            this.style.transition = 'all 0.3s ease';
-        });
-        
-        item.addEventListener('mouseleave', function() {
-            this.style.transform = 'translateY(0)';
-            this.style.boxShadow = '0 5px 15px rgba(0, 0, 0, 0.1)';
-        });
+    // Staggered animations for menu items
+    const staggerItems = document.querySelectorAll('.stagger-item');
+    staggerItems.forEach((item, index) => {
+        setTimeout(() => {
+            item.style.transition = 'opacity 0.8s ease, transform 0.8s ease';
+            item.style.opacity = '1';
+            item.style.transform = 'translateY(0)';
+        }, 100 * index);
     });
     
-    // Animação suave ao scroll
+    // Smooth scrolling for anchor links
     document.querySelectorAll('a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function(e) {
             e.preventDefault();
@@ -46,26 +25,34 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (targetElement) {
                 window.scrollTo({
-                    top: targetElement.offsetTop - 80,
+                    top: targetElement.offsetTop - 70,
                     behavior: 'smooth'
                 });
             }
         });
     });
     
-    // Efeito de destaque ao carregar a página para o cardápio de Páscoa
-    const easterCard = document.querySelector('.easter-card');
-    
-    if (easterCard) {
-        setTimeout(() => {
-            easterCard.style.transition = 'transform 0.5s ease, box-shadow 0.5s ease';
-            easterCard.style.transform = 'scale(1.02)';
-            easterCard.style.boxShadow = '0 10px 25px rgba(0, 0, 0, 0.15)';
+    // Scroll animations
+    function checkScroll() {
+        const staggerItems = document.querySelectorAll('.stagger-item');
+        staggerItems.forEach((item, index) => {
+            const itemTop = item.getBoundingClientRect().top;
+            const itemBottom = item.getBoundingClientRect().bottom;
+            const isVisible = (itemTop < window.innerHeight - 100) && (itemBottom > 0);
             
-            setTimeout(() => {
-                easterCard.style.transform = 'scale(1)';
-                easterCard.style.boxShadow = '0 5px 15px rgba(0, 0, 0, 0.1)';
-            }, 700);
-        }, 300);
+            if (isVisible) {
+                setTimeout(() => {
+                    item.style.transition = 'opacity 0.8s ease, transform 0.8s ease';
+                    item.style.opacity = '1';
+                    item.style.transform = 'translateY(0)';
+                }, 50 * index);
+            }
+        });
     }
+    
+    // Initial check
+    checkScroll();
+    
+    // Check on scroll
+    window.addEventListener('scroll', checkScroll);
 });
