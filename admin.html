@@ -570,10 +570,11 @@ textarea.form-control {
     box-shadow: 0 0 0 2px rgba(226, 182, 118, 0.2);
 }
 
+/* Estilos para o dropdown do filtro financeiro */
 .filter-select {
     min-width: 150px;
     padding: 0.8rem 1rem;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(57, 72, 57, 0.8);
     border: 1px solid rgba(226, 182, 118, 0.2);
     border-radius: 5px;
     color: var(--text-light);
@@ -585,6 +586,61 @@ textarea.form-control {
     background-repeat: no-repeat;
     background-position: right 0.8rem center;
     padding-right: 2.5rem;
+}
+
+/* Estilos para as opções do dropdown */
+.filter-select option {
+    background-color: var(--bg-color);
+    color: var(--text-light);
+    padding: 10px;
+}
+
+/* Estilização específica para o dropdown financeiro */
+#financialPeriodFilter {
+    background-color: rgba(57, 72, 57, 0.8);
+    color: var(--text-light);
+}
+
+#financialPeriodFilter option {
+    background-color: var(--bg-darker);
+    color: var(--text-light);
+    padding: 12px;
+}
+
+/* Estilos para o hover nas opções */
+#financialPeriodFilter option:hover,
+#financialPeriodFilter option:focus {
+    background-color: var(--accent-color);
+    color: var(--dark-color);
+}
+
+/* Para navegadores que suportam estilização de dropdown */
+select::-ms-expand {
+    display: none;
+}
+
+/* Melhorar aparência do dropdown no Firefox */
+@-moz-document url-prefix() {
+    .filter-select {
+        text-indent: 0.01px;
+        text-overflow: '';
+        padding-right: 1rem;
+    }
+    
+    .filter-select option {
+        background-color: var(--bg-darker);
+    }
+}
+
+/* Ajustes para o Chrome/Safari */
+@media screen and (-webkit-min-device-pixel-ratio:0) {
+    .filter-select option {
+        background-color: var(--bg-darker);
+    }
+    
+    select {
+        -webkit-appearance: none;
+    }
 }
 
 .filter-select:focus {
@@ -1351,6 +1407,7 @@ textarea.form-control {
         <div class="admin-tabs">
             <div class="admin-tab active" data-target="products">Produtos</div>
             <div class="admin-tab" data-target="orders">Pedidos</div>
+            <div class="admin-tab" data-target="financial">Financeiro</div>
             <div class="admin-tab" data-target="settings">Configurações</div>
         </div>
         
@@ -1473,6 +1530,137 @@ textarea.form-control {
                     </div>
                 </div>
             </div>
+           <!-- Financial Section -->
+<div id="financial" class="admin-section">
+    <div class="section-header">
+        <h2>Gestão Financeira</h2>
+        <div class="admin-actions">
+            <select id="financialPeriodFilter" class="filter-select">
+                <option value="today">Hoje</option>
+                <option value="yesterday">Ontem</option>
+                <option value="week" selected>Esta Semana</option>
+                <option value="month">Este Mês</option>
+                <option value="custom">Período Personalizado</option>
+            </select>
+            <div id="customDateRange" style="display: none; margin-left: 10px;">
+                <input type="date" id="startDate" class="form-control" style="width: auto; display: inline-block;">
+                <span style="margin: 0 5px;">até</span>
+                <input type="date" id="endDate" class="form-control" style="width: auto; display: inline-block;">
+                <button id="applyCustomDate" class="admin-btn admin-btn-outline" style="margin-left: 10px;">
+                    <i class="fas fa-check"></i> Aplicar
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="financial-summary">
+        <div class="summary-card">
+            <div class="summary-icon">
+                <i class="fas fa-shopping-cart"></i>
+            </div>
+            <div class="summary-info">
+                <span class="summary-label">Total de Pedidos</span>
+                <span class="summary-value" id="totalOrders">0</span>
+            </div>
+        </div>
+        
+        <div class="summary-card">
+            <div class="summary-icon">
+                <i class="fas fa-money-bill-wave"></i>
+            </div>
+            <div class="summary-info">
+                <span class="summary-label">Receita Total</span>
+                <span class="summary-value" id="totalRevenue">R$ 0,00</span>
+            </div>
+        </div>
+        
+        <div class="summary-card">
+            <div class="summary-icon">
+                <i class="fas fa-box"></i>
+            </div>
+            <div class="summary-info">
+                <span class="summary-label">Total de Itens</span>
+                <span class="summary-value" id="totalItems">0</span>
+            </div>
+        </div>
+        
+        <div class="summary-card">
+            <div class="summary-icon">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <div class="summary-info">
+                <span class="summary-label">Valor Médio</span>
+                <span class="summary-value" id="averageOrderValue">R$ 0,00</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="admin-content" style="margin-top: 1.5rem; background: rgba(57, 72, 57, 0.3);">
+        <div class="section-header" style="margin-bottom: 1rem;">
+            <h3 style="color: var(--accent-color); font-size: 1.2rem;">Pedidos Concluídos</h3>
+            <div>
+                <button id="exportFinancialData" class="admin-btn admin-btn-outline">
+                    <i class="fas fa-file-export"></i> Exportar
+                </button>
+            </div>
+        </div>
+        
+        <div class="financial-table-container">
+            <table class="financial-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Data</th>
+                        <th>Cliente</th>
+                        <th>Itens</th>
+                        <th>Valor</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="financialTableBody">
+                    <!-- Pedidos concluídos serão carregados aqui -->
+                </tbody>
+            </table>
+        </div>
+        
+        <div id="financialPagination" class="pagination" style="margin-top: 1rem;">
+            <!-- Paginação será adicionada aqui -->
+        </div>
+    </div>
+    
+    <div class="financial-categories" style="margin-top: 2rem;">
+        <div class="section-header" style="margin-bottom: 1rem;">
+            <h3 style="color: var(--accent-color); font-size: 1.2rem;">Vendas por Categoria</h3>
+        </div>
+        
+        <div class="category-stats">
+            <div id="categorySalesContainer" class="category-sales-container">
+                <!-- Dados de vendas por categoria serão carregados aqui -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Detalhes Financeiros -->
+<div class="modal-overlay" id="financialDetailsModal">
+    <div class="admin-modal">
+        <div class="admin-modal-header">
+            <h3>Detalhes do Pedido</h3>
+            <button class="admin-modal-close">&times;</button>
+        </div>
+        
+        <div class="admin-modal-body" id="financialOrderDetails">
+            <!-- Detalhes do pedido serão carregados aqui -->
+        </div>
+        
+        <div class="admin-modal-footer">
+            <button type="button" class="cancel-btn modal-close-btn">Fechar</button>
+            <button type="button" id="printOrderDetails" class="admin-btn">
+                <i class="fas fa-print"></i> Imprimir
+            </button>
+        </div>
+    </div>
+</div>
         </div>
     </div>
     
@@ -1561,6 +1749,8 @@ textarea.form-control {
                     <div id="loginError" class="error-message" style="display: none; color: tomato; margin-bottom: 1rem;"></div>
                 </form>
             </div>
+
+            
             
             <div class="admin-modal-footer">
                 <button type="button" id="loginBtn" class="submit-btn">Entrar</button>
@@ -1575,5 +1765,7 @@ textarea.form-control {
     <!-- Scripts -->
     <script src="db.js"></script>
     <script src="admin.js"></script>
+    <!-- Adicione esta linha no final do arquivo admin.html, antes do fechamento do body -->
+<script src="financial.js"></script>
 </body>
 </html>
