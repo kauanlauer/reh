@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delícia D'Brownie - Administração</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- Estilos adicionais para o admin -->
+    <style>
+        body {
+            padding: 0;
+            margin: 0;
+        }
+        
+        .admin-back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-light);
+            text-decoration: none;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .admin-back-link:hover {
+            color: var(--accent-color);
+        }
+        
+        .admin-actions {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .admin-btn {
+            background: var(--accent-color);
+            color: var(--dark-color);
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .admin-btn:hover {
+            background: var(--accent-light);
+            transform: translateY(-3px);
+        }
+        
+        .admin-btn-outline {
+            background: transparent;
+            color: var(--accent-color);
+            border: 1px solid var(--accent-color);
+        }
+        
+        .admin-btn-outline:hover {
+            background: rgba(226, 182, 118, 0.1);
+        }
+        
+        .logout-btn {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--text-muted);
+        }
+        
+        .logout-btn:hover {
+            color: var(--text-light);
+            border-color: var(--text-light);
+            background: transparent;
+        }
+    </style>
+</head>
+<body>
+    <!-- Elementos decorativos -->
+    <div class="decoration-circle circle-1"></div>
+    <div class="decoration-circle circle-2"></div>
+    <div class="decoration-circle circle-3"></div>
+    
+    <div class="admin-container">
+        <a href="index.html" class="admin-back-link">
+            <i class="fas fa-arrow-left"></i> Voltar para o site
+        </a>
+        
+        <div class="admin-header">
+            <h1>Painel Administrativo - Delícia D'Brownie</h1>
+            
+            <div class="admin-actions">
+                <button id="refreshDataBtn" class="admin-btn admin-btn-outline">
+                    <i class="fas fa-sync-alt"></i> Atualizar Dados
+                </button>
+                <button id="logoutBtn" class="admin-btn logout-btn">
+                    <i class="fas fa-sign-out-alt"></i> Sair
+                </button>
+            </div>
+        </div>
+        
+        <div class="admin-tabs">
+            <div class="admin-tab active" data-target="products">Produtos</div>
+            <div class="admin-tab" data-target="orders">Pedidos</div>
+            <div class="admin-tab" data-target="settings">Configurações</div>
+        </div>
+        
+        <div class="admin-content">
+            <!-- Products Section -->
+            <div id="products" class="admin-section active">
+                <div class="section-header">
+                    <h2>Gerenciar Produtos</h2>
+                    <button id="addProductBtn" class="admin-btn">
+                        <i class="fas fa-plus"></i> Adicionar Produto
+                    </button>
+                </div>
+                
+                <div id="addProductForm" class="add-product-form" style="display: none;">
+                    <h3>Adicionar Novo Produto</h3>
+                    <form id="productForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="productName">Nome do Produto</label>
+                                <input type="text" id="productName" class="form-control" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="productCategory">Categoria</label>
+                                <select id="productCategory" class="form-control" required>
+                                    <option value="">Selecione uma categoria</option>
+                                    <option value="bolos">Bolos Vulcão</option>
+                                    <option value="brownies">Brownies</option>
+                                    <option value="copos">Copos da Felicidade</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="productPrice">Preço (R$)</label>
+                                <input type="number" id="productPrice" class="form-control" step="0.01" min="0" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="productDescription">Descrição</label>
+                            <textarea id="productDescription" class="form-control" rows="3" required></textarea>
+                        </div>
+                        
+                        <div id="specificationFields">
+                            <!-- Campos de especificação serão adicionados dinamicamente baseado na categoria -->
+                        </div>
+                        
+                        <div class="form-actions">
+                            <button type="submit" class="submit-btn">Salvar Produto</button>
+                            <button type="button" id="cancelAddProduct" class="cancel-btn">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+                
+                <div class="product-list" id="productList">
+                    <!-- Produtos serão carregados aqui -->
+                    <div class="loading">Carregando produtos...</div>
+                </div>
+            </div>
+            
+            <!-- Orders Section -->
+            <div id="orders" class="admin-section">
+                <h2>Gerenciar Pedidos</h2>
+                
+                <div class="search-bar">
+                    <input type="text" id="orderSearch" class="search-input" placeholder="Buscar pedidos...">
+                    
+                    <select id="statusFilter" class="filter-select">
+                        <option value="all">Todos os Status</option>
+                        <option value="novo">Novos</option>
+                        <option value="preparo">Em Preparo</option>
+                        <option value="entrega">Em Entrega</option>
+                        <option value="concluido">Concluídos</option>
+                        <option value="cancelado">Cancelados</option>
+                    </select>
+                </div>
+                
+                <div class="orders-list" id="ordersList">
+                    <!-- Pedidos serão carregados aqui -->
+                    <div class="loading">Carregando pedidos...</div>
+                </div>
+                
+                <div class="pagination" id="ordersPagination">
+                    <!-- Paginação será adicionada aqui -->
+                </div>
+            </div>
+            
+            <!-- Settings Section -->
+            <div id="settings" class="admin-section">
+                <h2>Configurações</h2>
+                
+                <div class="settings-form">
+                    <div class="form-group">
+                        <label for="storeName">Nome da Loja</label>
+                        <input type="text" id="storeName" class="form-control" value="Delícia D'Brownie">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="storePhone">Telefone</label>
+                        <input type="tel" id="storePhone" class="form-control" value="(41) 99248-0604">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="storeInstagram">Instagram</label>
+                        <input type="text" id="storeInstagram" class="form-control" value="@_delicia_de_brownie_">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="storeAddress">Endereço</label>
+                        <input type="text" id="storeAddress" class="form-control" value="Curitiba, PR">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="storeWhatsapp">WhatsApp para Pedidos</label>
+                        <input type="tel" id="storeWhatsapp" class="form-control" value="5541992480604">
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="button" id="saveSettingsBtn" class="submit-btn">Salvar Configurações</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de Edição de Produto -->
+    <div class="modal-overlay" id="editProductModal">
+        <div class="admin-modal">
+            <div class="admin-modal-header">
+                <h3>Editar Produto</h3>
+                <button class="admin-modal-close">&times;</button>
+            </div>
+            
+            <div class="admin-modal-body">
+                <form id="editProductForm">
+                    <input type="hidden" id="editProductId">
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="editProductName">Nome do Produto</label>
+                            <input type="text" id="editProductName" class="form-control" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="editProductPrice">Preço (R$)</label>
+                            <input type="number" id="editProductPrice" class="form-control" step="0.01" min="0" required>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="editProductDescription">Descrição</label>
+                        <textarea id="editProductDescription" class="form-control" rows="3" required></textarea>
+                    </div>
+                    
+                    <div id="editSpecificationFields">
+                        <!-- Campos de especificação serão adicionados dinamicamente -->
+                    </div>
+                </form>
+            </div>
+            
+            <div class="admin-modal-footer">
+                <button type="button" class="cancel-btn modal-close-btn">Cancelar</button>
+                <button type="button" id="saveEditProductBtn" class="submit-btn">Salvar Alterações</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de Visualização de Pedido -->
+    <div class="modal-overlay" id="viewOrderModal">
+        <div class="admin-modal">
+            <div class="admin-modal-header">
+                <h3>Detalhes do Pedido</h3>
+                <button class="admin-modal-close">&times;</button>
+            </div>
+            
+            <div class="admin-modal-body" id="orderDetails">
+                <!-- Detalhes do pedido serão carregados aqui -->
+            </div>
+            
+            <div class="admin-modal-footer">
+                <button type="button" class="cancel-btn modal-close-btn">Fechar</button>
+                <div id="orderStatusActions">
+                    <!-- Botões de ação de status serão adicionados aqui -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal de Login -->
+    <div class="modal-overlay" id="loginModal">
+        <div class="admin-modal">
+            <div class="admin-modal-header">
+                <h3>Login Administrativo</h3>
+            </div>
+            
+            <div class="admin-modal-body">
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label for="loginEmail">E-mail</label>
+                        <input type="email" id="loginEmail" class="form-control" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="loginPassword">Senha</label>
+                        <input type="password" id="loginPassword" class="form-control" required>
+                    </div>
+                    
+                    <div id="loginError" class="error-message" style="display: none; color: tomato; margin-bottom: 1rem;"></div>
+                </form>
+            </div>
+            
+            <div class="admin-modal-footer">
+                <button type="button" id="loginBtn" class="submit-btn">Entrar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Font Awesome -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
+    <!-- Supabase Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Scripts -->
+    <script src="db.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>

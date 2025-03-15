@@ -1,0 +1,189 @@
+Project URL https://dbtkufhsgdnfxjcjypqa.supabase.co
+
+API Key eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRidGt1ZmhzZ2RuZnhqY2p5cHFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIwMDU0NzksImV4cCI6MjA1NzU4MTQ3OX0.B9Ktlj5KAwd7-wD--uJG47zeEQwWTBc5sXoPacoUyCk
+
+import { createClient } from '@supabase/supabase-js'
+
+const supabaseUrl = 'https://dbtkufhsgdnfxjcjypqa.supabase.co'
+const supabaseKey = process.env.SUPABASE_KEY
+const supabase = createClient(supabaseUrl, supabaseKey)
+
+
+
+-- Este SQL deve ser executado no SQL Editor do Supabase
+
+-- Criar tabela de pedidos
+CREATE TABLE pedidos (
+    id SERIAL PRIMARY KEY,
+    cliente VARCHAR(255) NOT NULL,
+    telefone VARCHAR(20) NOT NULL,
+    endereco TEXT NOT NULL,
+    referencia TEXT,
+    observacoes TEXT,
+    itens JSONB NOT NULL,
+    status VARCHAR(20) NOT NULL DEFAULT 'novo',
+    mensagem TEXT,
+    data_pedido TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    total_itens INTEGER NOT NULL,
+    data_atualizacao TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Criar índices para melhorar a performance
+CREATE INDEX idx_pedidos_status ON pedidos(status);
+CREATE INDEX idx_pedidos_data ON pedidos(data_pedido DESC);
+
+-- Criar uma função para atualizar o timestamp de atualização automaticamente
+CREATE OR REPLACE FUNCTION update_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.data_atualizacao = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Criar um trigger para atualizar o timestamp quando o pedido for atualizado
+CREATE TRIGGER set_timestamp
+BEFORE UPDATE ON pedidos
+FOR EACH ROW
+EXECUTE FUNCTION update_timestamp();
+
+-- Criar políticas RLS (Row Level Security) para proteger os dados
+-- Este é um exemplo básico, em produção você deve restringir melhor o acesso
+
+-- Ativar RLS na tabela
+ALTER TABLE pedidos ENABLE ROW LEVEL SECURITY;
+
+-- Política para permitir leitura anônima (somente para teste)
+CREATE POLICY "Permitir leitura anônima" ON pedidos
+FOR SELECT USING (true);
+
+-- Política para permitir inserção anônima (somente para teste)
+CREATE POLICY "Permitir inserção anônima" ON pedidos
+FOR INSERT WITH CHECK (true);
+
+-- Política para permitir atualização anônima (somente para teste)
+CREATE POLICY "Permitir atualização anônima" ON pedidos
+FOR UPDATE USING (true);
+
+-- NOTA: Em um ambiente de produção, você deve configurar autenticação adequada
+-- e restringir o acesso usando RLS mais rigoroso
+
+-- Criar tabela de categorias
+CREATE TABLE categorias (
+    id SERIAL PRIMARY KEY,
+    nome VARCHAR(255) NOT NULL,
+    slug VARCHAR(100) NOT NULL UNIQUE,
+    data_criacao TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    data_atualizacao TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Criar tabela de produtos
+CREATE TABLE produtos (
+    id SERIAL PRIMARY KEY,
+    nome VARCHAR(255) NOT NULL,
+    categoria_id INTEGER REFERENCES categorias(id),
+    descricao TEXT,
+    preco DECIMAL(10, 2) DEFAULT 0.00,
+    especificacoes JSONB,
+    data_criacao TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    data_atualizacao TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Criar trigger para atualizar data_atualizacao
+CREATE OR REPLACE FUNCTION update_produto_timestamp()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.data_atualizacao = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER set_produto_timestamp
+BEFORE UPDATE ON produtos
+FOR EACH ROW
+EXECUTE FUNCTION update_produto_timestamp();
+
+CREATE TRIGGER set_categoria_timestamp
+BEFORE UPDATE ON categorias
+FOR EACH ROW
+EXECUTE FUNCTION update_produto_timestamp();
+
+-- Ativar RLS na tabela
+ALTER TABLE produtos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE categorias ENABLE ROW LEVEL SECURITY;
+
+-- Política para permitir leitura anônima 
+CREATE POLICY "Permitir leitura anônima de produtos" ON produtos
+FOR SELECT USING (true);
+
+-- Política para permitir inserção anônima 
+CREATE POLICY "Permitir inserção anônima de produtos" ON produtos
+FOR INSERT WITH CHECK (true);
+
+-- Política para permitir atualização anônima 
+CREATE POLICY "Permitir atualização anônima de produtos" ON produtos
+FOR UPDATE USING (true);
+
+-- Política para permitir exclusão anônima 
+CREATE POLICY "Permitir exclusão anônima de produtos" ON produtos
+FOR DELETE USING (true);
+
+-- Políticas semelhantes para categorias
+CREATE POLICY "Permitir leitura anônima de categorias" ON categorias
+FOR SELECT USING (true);
+
+CREATE POLICY "Permitir inserção anônima de categorias" ON categorias
+FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Permitir atualização anônima de categorias" ON categorias
+FOR UPDATE USING (true);
+
+CREATE POLICY "Permitir exclusão anônima de categorias" ON categorias
+FOR DELETE USING (true);
+
+-- Inserir categorias iniciais
+INSERT INTO categorias (nome, slug) VALUES 
+('Bolos Vulcão', 'bolos'),
+('Brownies', 'brownies'),
+('Copos da Felicidade', 'copos');
+
+-- Inserir produtos iniciais
+-- Bolos Vulcão
+INSERT INTO produtos (nome, categoria_id, descricao, preco, especificacoes) VALUES
+('Chocolatudo', 1, 'Uma explosão de chocolate para os verdadeiros apaixonados. A combinação perfeita da massa macia com recheio intenso.', 0.00, 
+'{"massa": "Chocolate", "recheio": "Chocolate", "finalizacao": "Brownie e granulado"}'),
+
+('Dois Amores', 1, 'O encontro perfeito entre o chocolate e a suavidade da massa branca, criando uma harmonia de sabores inesquecível.', 0.00, 
+'{"massa": "Branca", "recheio": "Chocolate", "finalizacao": "Granulado"}'),
+
+('Delícia de Morango', 1, 'Uma combinação refrescante que une a suavidade da massa branca com a acidez dos morangos selecionados.', 0.00, 
+'{"massa": "Branca", "recheio": "Creme de chocolate branco", "finalizacao": "Geleia de morango e morangos"}'),
+
+('Cenourinha', 1, 'O tradicional bolo de cenoura reinventado em formato vulcão, com brigadeiro cremoso que derrete na boca.', 0.00, 
+'{"massa": "Cenoura", "recheio": "Brigadeiro de chocolate", "finalizacao": "Granulado"}'),
+
+('Ninho com Avelã', 1, 'A combinação mais aclamada e sofisticada: a delicadeza do leite Ninho com a intensidade do creme de avelã.', 0.00, 
+'{"massa": "Branca", "recheio": "Creme de chocolate branco", "finalizacao": "Leite em pó ninho com creme de avelã"}'),
+
+('Red Velvet', 1, 'Elegância em cada pedaço. A textura aveludada da massa vermelha combinada com creme de chocolate branco.', 0.00, 
+'{"massa": "Red Velvet", "recheio": "Creme de chocolate branco", "finalizacao": "Creme thesse e morangos"}');
+
+-- Brownies
+INSERT INTO produtos (nome, categoria_id, descricao, preco, especificacoes) VALUES
+('Sanduíche', 2, 'Duas camadas de brownie envolvendo recheios incríveis. Uma tentação irresistível para os amantes de chocolate.', 0.00, 
+'{"sabores": ["Chocolate brend", "Chocolate branco", "Doce de leite"]}'),
+
+('Marmitinha', 2, 'Brownies em porções individuais com coberturas luxuosas. Perfeito para presentear ou se deliciar a qualquer hora.', 0.00, 
+'{"sabores": ["Ferrero Rocher", "Ninho com creme de avelã", "Kinder bueno"]}');
+
+-- Copos da Felicidade
+INSERT INTO produtos (nome, categoria_id, descricao, preco, especificacoes) VALUES
+('Morango com Brownie', 3, 'Camadas de brownie, creme aveludado e morangos frescos que formam uma sobremesa inesquecível em cada colherada.', 0.00, '{}'),
+
+('Surpresa de Uva', 3, 'O equilíbrio perfeito entre o doce do creme e a acidez das uvas frescas, criando uma experiência surpreendente.', 0.00, '{}');
+
+-- Adicionar coluna de valor total na tabela de pedidos
+ALTER TABLE pedidos ADD COLUMN valor_total DECIMAL(10, 2) DEFAULT 0;
+
+-- Adicionar índice para melhorar performance de consultas por valor
+CREATE INDEX idx_pedidos_valor ON pedidos(valor_total);
