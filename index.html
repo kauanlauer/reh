@@ -4,216 +4,509 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Delícia D'Brownie - Cardápio</title>
-    <link rel="stylesheet" href="styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Poppins:wght@300;400;500&family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Poppins:wght@300;400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-color: #5C7C64;
+            --secondary-color: #C99D6E;
+            --text-color: #333;
+            --light-color: #FFFFFF;
+            --background-overlay: rgba(92, 124, 100, 0.1);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            color: var(--text-color);
+            background-color: var(--primary-color);
+            line-height: 1.6;
+            background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiB2aWV3Qm94PSIwIDAgMjAwIDIwMCI+CiAgPHBhdGggZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utb3BhY2l0eT0iMC4wNSIgc3Ryb2tlLXdpZHRoPSIyIiBkPSJNMTAgMTBDMTUgMTUgMjAgMjAgMzAgMzBDNDUgNDUgNTAgNDUgNjUgNjVDODAgODAgOTUgOTUgMTEwIDExMEMxMjUgMTI1IDE0MCAxNDAgMTU1IDE1NUMxNzAgMTcwIDE4NSAxODUgMTkwIDE5MCIvPgo8L3N2Zz4=');
+            background-attachment: fixed;
+        }
+        
+        .container {
+            max-width: 100%;
+            padding: 0;
+            margin: 0;
+            overflow-x: hidden;
+        }
+        
+        h1, h2, h3, h4 {
+            font-family: 'Playfair Display', serif;
+            letter-spacing: 1px;
+        }
+        
+        /* Header */
+        header {
+            padding: 30px 20px;
+            text-align: center;
+            position: relative;
+        }
+        
+        header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjAwIiB2aWV3Qm94PSIwIDAgMjAwIDIwMCI+CiAgPHBhdGggZmlsbD0ibm9uZSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utb3BhY2l0eT0iMC4xIiBzdHJva2Utd2lkdGg9IjIiIGQ9Ik0wIDIwQzQwIDIwIDIwIDQwIDYwIDQwQzEwMCA0MCAxNDAgNjAgMTYwIDgwQzE4MCAxMDAgMTgwIDE0MCAxNjAgMTYwQzE0MCAxODAgMTAwIDE2MCA2MCAxODBDMjAgMTYwIDAgMTgwIDAgMTQwQzAgMTAwIDIwIDgwIDIwIDQwQzIwIDIwIDAgMjAgMCAyMFoiLz4KPC9zdmc+');
+            opacity: 0.1;
+            z-index: -1;
+        }
+        
+        .title-vertical {
+            position: fixed;
+            left: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            writing-mode: vertical-rl;
+            text-orientation: mixed;
+            transform: rotate(180deg);
+            font-size: 1.8rem;
+            color: var(--light-color);
+            opacity: 0.8;
+            z-index: 100;
+            display: none;
+        }
+        
+        @media (min-width: 768px) {
+            .title-vertical {
+                display: block;
+            }
+        }
+        
+        .main-title {
+            font-size: 3.5rem;
+            color: var(--light-color);
+            margin-bottom: 10px;
+        }
+        
+        .intro-box {
+            max-width: 400px;
+            margin: 20px auto;
+            background-color: var(--secondary-color);
+            border-radius: 15px;
+            padding: 20px;
+            color: var(--text-color);
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .contact-info {
+            margin-top: 30px;
+            display: flex;
+            justify-content: center;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .contact-link {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--light-color);
+            text-decoration: none;
+            font-size: 1.2rem;
+            transition: transform 0.3s ease;
+        }
+        
+        .contact-link:hover {
+            transform: scale(1.05);
+        }
+        
+        .contact-link i {
+            font-size: 1.5rem;
+        }
+        
+        /* Menu Sections */
+        .menu-section {
+            padding: 40px 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .section-title {
+            font-size: 2.5rem;
+            color: var(--light-color);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        
+        /* Product Cards */
+        .product-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .product-item {
+            background-color: var(--primary-color);
+            border-radius: 10px;
+            overflow: hidden;
+            position: relative;
+            transition: transform 0.3s ease;
+        }
+        
+        .product-name {
+            padding: 12px 15px;
+            background-color: var(--secondary-color);
+            color: var(--text-color);
+            font-weight: 600;
+            border-radius: 8px 8px 0 0;
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+        
+        .product-name i {
+            margin-right: 10px;
+        }
+        
+        .product-details {
+            padding: 15px;
+            color: var(--light-color);
+            font-size: 0.95rem;
+            line-height: 1.7;
+        }
+        
+        .detail-row {
+            margin-bottom: 8px;
+            padding-left: 20px;
+            position: relative;
+        }
+        
+        .detail-row::before {
+            content: "•";
+            position: absolute;
+            left: 5px;
+            color: var(--secondary-color);
+            font-weight: bold;
+        }
+        
+        /* Gallery */
+        .gallery-section {
+            padding: 40px 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 15px;
+        }
+        
+        .gallery-item {
+            border-radius: 10px;
+            overflow: hidden;
+            aspect-ratio: 1/1;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        .gallery-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+        
+        .gallery-item:hover img {
+            transform: scale(1.05);
+        }
+        
+        /* Footer */
+        footer {
+            background-color: rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            text-align: center;
+            color: var(--light-color);
+            margin-top: 40px;
+        }
+        
+        .whatsapp-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background-color: #25D366;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-decoration: none;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            font-size: 1.8rem;
+            transition: transform 0.3s ease;
+        }
+        
+        .whatsapp-button:hover {
+            transform: scale(1.1);
+        }
+        
+        /* Responsive */
+        @media (max-width: 767px) {
+            .main-title {
+                font-size: 2.5rem;
+            }
+            
+            .section-title {
+                font-size: 2rem;
+            }
+            
+            .gallery-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
 </head>
 <body>
-    <header>
-        <div class="logo">
-            <img src="https://via.placeholder.com/80" alt="Logo Delícia D'Brownie">
-            <h1>Delícia D'Brownie</h1>
-        </div>
-    </header>
-
-    <main>
-        <!-- Cardápio de Páscoa -->
-        <section class="easter-menu">
-            <div class="easter-card">
-                <div class="easter-header">
-                    <div class="bunny-icon">
-                        <i class="fas fa-egg"></i>
-                    </div>
-                    <h2>Cardápio Gourmet de</h2>
-                    <h3>páscoa</h3>
-                </div>
-
-                <div class="menu-block">
-                    <h4>Ovo de colher</h4>
-                    <div class="price-options">
-                        <span>200g - R$30,00</span>
-                        <span>300g - R$45,00</span>
-                        <span>500g - R$55,00</span>
-                    </div>
-                </div>
-
-                <div class="menu-block">
-                    <h4>Escolha sua casca</h4>
-                    <div class="options-grid">
-                        <div class="option-column">
-                            <div class="option-item">Chocolate ao Leite</div>
-                            <div class="option-item">Chocolate Branco</div>
-                        </div>
-                        <div class="option-column">
-                            <div class="option-item">Chocolate Crocante</div>
-                            <div class="option-item">Chocolate Belga</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="menu-block">
-                    <h4>Escolha seu recheio</h4>
-                    <div class="options-grid">
-                        <div class="option-column">
-                            <div class="option-item">Brigadeiro</div>
-                            <div class="option-item">Maracujá</div>
-                            <div class="option-item">Beijinho</div>
-                        </div>
-                        <div class="option-column">
-                            <div class="option-item">Brownie</div>
-                            <div class="option-item">Pistache</div>
-                            <div class="option-item">Paçoca</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="menu-block">
-                    <h4>Adicional - R$5,00</h4>
-                    <div class="options-grid">
-                        <div class="option-column">
-                            <div class="option-item">Creme de Avelã</div>
-                            <div class="option-item">Morango</div>
-                        </div>
-                        <div class="option-column">
-                            <div class="option-item">Leite em pó</div>
-                            <div class="option-item">Uva Verde</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="menu-footer">
-                    <p>Faça seu pedido até 05/04</p>
-                    <p>Necessário realizar 50% do pagamento no ato do pedido.</p>
-                    <p>Entrega: delivery ou retirada no local.</p>
-                </div>
+    <div class="container">
+        <div class="title-vertical">Delícia D'Brownie</div>
+        
+        <header>
+            <h1 class="main-title">Cardápio</h1>
+            <div class="intro-box">
+                <p>Conheça melhor nossos produtos. Através desta página você irá conhecer e conseguir pedir os nossos produtos de maneira fácil e simplificada.</p>
             </div>
-        </section>
-
-        <!-- Cardápio Regular -->
-        <section class="regular-menu">
-            <div class="category-tabs">
-                <button class="tab-btn active" data-tab="bolos">Bolos</button>
-                <button class="tab-btn" data-tab="brownies">Brownies</button>
-                <button class="tab-btn" data-tab="docinhos">Docinhos</button>
+            <div class="contact-info">
+                <a href="https://www.instagram.com/delicia_de_brownie/" class="contact-link">
+                    <i class="fab fa-instagram"></i>
+                    <span>delicia_de_brownie</span>
+                </a>
+                <a href="https://wa.me/5541997056000" class="contact-link">
+                    <i class="fab fa-whatsapp"></i>
+                    <span>(41) 99705-6000</span>
+                </a>
             </div>
-
-            <div class="tab-content" id="bolos">
-                <div class="menu-item">
-                    <h3>Bolo Prestígio</h3>
-                    <p>Massa amanteigada cacau com brigadeiro cremoso de coco ralado.</p>
-                    <div class="price-list">
-                        <span>PP: R$110,00</span>
-                        <span>P: R$150,00</span>
-                        <span>M: R$190,00</span>
-                        <span>G: R$230,00</span>
+        </header>
+        
+        <section class="menu-section">
+            <h2 class="section-title">Bolo Vulcão</h2>
+            <div class="product-grid">
+                <div class="product-item">
+                    <div class="product-name" onclick="window.location.href='https://wa.me/5541997056000?text=Olá! Gostaria de encomendar o Bolo Vulcão Chocolatudo.'">
+                        <i class="fas fa-birthday-cake"></i>
+                        Chocolatudo
+                    </div>
+                    <div class="product-details">
+                        <div class="detail-row">Massa: Chocolate</div>
+                        <div class="detail-row">Recheio: Chocolate</div>
+                        <div class="detail-row">Finalização: Brownie e granulado</div>
                     </div>
                 </div>
-
-                <div class="menu-item">
-                    <h3>Bolo Brigadeiro</h3>
-                    <p>Massa amanteigada cacau com brigadeiro de chocolate ao leite.</p>
-                    <div class="price-list">
-                        <span>PP: R$110,00</span>
-                        <span>P: R$150,00</span>
-                        <span>M: R$190,00</span>
-                        <span>G: R$230,00</span>
+                
+                <div class="product-item">
+                    <div class="product-name" onclick="window.location.href='https://wa.me/5541997056000?text=Olá! Gostaria de encomendar o Bolo Vulcão Dois Amores.'">
+                        <i class="fas fa-birthday-cake"></i>
+                        Dois amores
+                    </div>
+                    <div class="product-details">
+                        <div class="detail-row">Massa: Branca</div>
+                        <div class="detail-row">Recheio: Chocolate</div>
+                        <div class="detail-row">Finalização: Granulado</div>
                     </div>
                 </div>
-
-                <div class="menu-item">
-                    <h3>Bolo Bem Casado</h3>
-                    <p>Massa amanteigada baunilha com recheio de doce de leite caseiro.</p>
-                    <div class="price-list">
-                        <span>PP: R$110,00</span>
-                        <span>P: R$150,00</span>
-                        <span>M: R$190,00</span>
-                        <span>G: R$230,00</span>
+                
+                <div class="product-item">
+                    <div class="product-name" onclick="window.location.href='https://wa.me/5541997056000?text=Olá! Gostaria de encomendar o Bolo Vulcão Delicia de Morango.'">
+                        <i class="fas fa-birthday-cake"></i>
+                        Delicia de morango
+                    </div>
+                    <div class="product-details">
+                        <div class="detail-row">Massa: Branca</div>
+                        <div class="detail-row">Recheio: Creme de chocolate branco</div>
+                        <div class="detail-row">Finalização: Geleia de morango e morangos</div>
                     </div>
                 </div>
-
-                <div class="menu-item">
-                    <h3>Bolo Ninho com Morango</h3>
-                    <p>Massa aveludada red velvet com brigadeiro de ninho e geleia de morango.</p>
-                    <div class="price-list">
-                        <span>PP: R$130,00</span>
-                        <span>P: R$170,00</span>
-                        <span>M: R$200,00</span>
-                        <span>G: R$250,00</span>
+                
+                <div class="product-item">
+                    <div class="product-name" onclick="window.location.href='https://wa.me/5541997056000?text=Olá! Gostaria de encomendar o Bolo Vulcão Cenourinha.'">
+                        <i class="fas fa-birthday-cake"></i>
+                        Cenourinha
+                    </div>
+                    <div class="product-details">
+                        <div class="detail-row">Massa: Cenoura</div>
+                        <div class="detail-row">Recheio: Brigadeiro de chocolate</div>
+                        <div class="detail-row">Finalização: Granulado</div>
                     </div>
                 </div>
-            </div>
-
-            <div class="tab-content" id="brownies" style="display: none;">
-                <div class="menu-item">
-                    <h3>Brownie Tradicional</h3>
-                    <p>Brownie tradicional com nozes, denso e úmido.</p>
-                    <div class="price-list">
-                        <span>Unidade: R$12,00</span>
-                        <span>Caixa 6 unidades: R$65,00</span>
+                
+                <div class="product-item">
+                    <div class="product-name" onclick="window.location.href='https://wa.me/5541997056000?text=Olá! Gostaria de encomendar o Bolo Vulcão Ninho com Creme de Avelã.'">
+                        <i class="fas fa-birthday-cake"></i>
+                        Ninho com creme de avelã
+                    </div>
+                    <div class="product-details">
+                        <div class="detail-row">Massa: Branca</div>
+                        <div class="detail-row">Recheio: Creme de chocolate branco</div>
+                        <div class="detail-row">Finalização: Leite em pó ninho com creme de avelã</div>
                     </div>
                 </div>
-
-                <div class="menu-item">
-                    <h3>Brownie Recheado</h3>
-                    <p>Brownie recheado com doce de leite ou nutella.</p>
-                    <div class="price-list">
-                        <span>Unidade: R$15,00</span>
-                        <span>Caixa 6 unidades: R$80,00</span>
+                
+                <div class="product-item">
+                    <div class="product-name" onclick="window.location.href='https://wa.me/5541997056000?text=Olá! Gostaria de encomendar o Bolo Vulcão Delicia de Oreo.'">
+                        <i class="fas fa-birthday-cake"></i>
+                        Delicia de Oreo
+                    </div>
+                    <div class="product-details">
+                        <div class="detail-row">Massa: Branca</div>
+                        <div class="detail-row">Recheio: Creme de chocolate branco</div>
+                        <div class="detail-row">Finalização: Oreos triturado</div>
                     </div>
                 </div>
-            </div>
-
-            <div class="tab-content" id="docinhos" style="display: none;">
-                <div class="menu-item">
-                    <h3>Brigadeiro Gourmet</h3>
-                    <p>Brigadeiro cremoso, feito com chocolate belga.</p>
-                    <div class="price-list">
-                        <span>Unidade: R$3,50</span>
-                        <span>Cento: R$300,00</span>
+                
+                <div class="product-item">
+                    <div class="product-name" onclick="window.location.href='https://wa.me/5541997056000?text=Olá! Gostaria de encomendar o Bolo Vulcão Amendoim.'">
+                        <i class="fas fa-birthday-cake"></i>
+                        Amendoim
+                    </div>
+                    <div class="product-details">
+                        <div class="detail-row">Massa: Branca</div>
+                        <div class="detail-row">Recheio: Brigadeiro de amendoim</div>
+                        <div class="detail-row">Finalização: Amendoim triturado</div>
                     </div>
                 </div>
-
-                <div class="menu-item">
-                    <h3>Beijinho Gourmet</h3>
-                    <p>Beijinho cremoso, feito com coco fresco ralado.</p>
-                    <div class="price-list">
-                        <span>Unidade: R$3,50</span>
-                        <span>Cento: R$300,00</span>
+                
+                <div class="product-item">
+                    <div class="product-name" onclick="window.location.href='https://wa.me/5541997056000?text=Olá! Gostaria de encomendar o Bolo Vulcão Red Velvet.'">
+                        <i class="fas fa-birthday-cake"></i>
+                        Red Velvet
+                    </div>
+                    <div class="product-details">
+                        <div class="detail-row">Massa: Red Velvet</div>
+                        <div class="detail-row">Recheio: Creme de chocolate branco</div>
+                        <div class="detail-row">Finalização: Creme chesse e morangos</div>
                     </div>
                 </div>
             </div>
         </section>
-
-        <section class="info-block">
-            <h2>Informações Importantes</h2>
-            <ul>
-                <li>Nossos bolos possuem 3 camadas de massa e 2 de recheio</li>
-                <li>Todos os bolos são cobertos com chantilly estabilizado</li>
-                <li>Decorações inclusas: trabalho de bico simples, espatulado liso</li>
-                <li>Necessário agendar com antecedência</li>
-                <li>Aceitamos cartões e PIX</li>
-            </ul>
-        </section>
-    </main>
-
-    <footer>
-        <div class="contact-info">
-            <a href="https://wa.me/5500000000000" class="contact-btn">
-                <i class="fab fa-whatsapp"></i>
-                Fazer Pedido
-            </a>
-            <div class="social-links">
-                <a href="#" class="social-icon"><i class="fab fa-instagram"></i></a>
-                <a href="#" class="social-icon"><i class="fab fa-facebook-f"></i></a>
+        
+        <section class="menu-section">
+            <h2 class="section-title">Brownies</h2>
+            <div class="product-grid">
+                <div class="product-item">
+                    <div class="product-name" onclick="window.location.href='https://wa.me/5541997056000?text=Olá! Gostaria de encomendar o Brownie Sanduiche.'">
+                        <i class="fas fa-cookie"></i>
+                        Sanduiche
+                    </div>
+                    <div class="product-details">
+                        <div class="detail-row">Chocolate brend</div>
+                        <div class="detail-row">Chocolate branco</div>
+                        <div class="detail-row">Doce de leite</div>
+                    </div>
+                </div>
+                
+                <div class="product-item">
+                    <div class="product-name" onclick="window.location.href='https://wa.me/5541997056000?text=Olá! Gostaria de encomendar o Brownie Marmitinha.'">
+                        <i class="fas fa-cookie"></i>
+                        Marmitinha
+                    </div>
+                    <div class="product-details">
+                        <div class="detail-row">Ferrero Rocher</div>
+                        <div class="detail-row">Ninho com creme de avelã</div>
+                        <div class="detail-row">Kinder bueno</div>
+                    </div>
+                </div>
             </div>
-        </div>
-        <div class="copyright">
-            <p>&copy; 2025 Delícia D'Brownie. Todos os direitos reservados.</p>
-        </div>
-    </footer>
+        </section>
+        
+        <section class="menu-section">
+            <h2 class="section-title">Copo da Felicidade</h2>
+            <div class="product-grid">
+                <div class="product-item">
+                    <div class="product-name" onclick="window.location.href='https://wa.me/5541997056000?text=Olá! Gostaria de encomendar o Copo da Felicidade de Morango com Brownie.'">
+                        <i class="fas fa-glass-cheers"></i>
+                        Morango com brownie
+                    </div>
+                </div>
+                
+                <div class="product-item">
+                    <div class="product-name" onclick="window.location.href='https://wa.me/5541997056000?text=Olá! Gostaria de encomendar o Copo da Felicidade Surpresa de Uva.'">
+                        <i class="fas fa-glass-cheers"></i>
+                        Surpresa de uva
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section class="gallery-section">
+            <h2 class="section-title">Nossos Produtos</h2>
+            <div class="gallery-grid">
+                <div class="gallery-item">
+                    <img src="/api/placeholder/200/200" alt="Bolo Vulcão de Chocolate">
+                </div>
+                <div class="gallery-item">
+                    <img src="/api/placeholder/200/200" alt="Bolo Vulcão Branco">
+                </div>
+                <div class="gallery-item">
+                    <img src="/api/placeholder/200/200" alt="Brownie com Nozes">
+                </div>
+                <div class="gallery-item">
+                    <img src="/api/placeholder/200/200" alt="Brownie Sanduiche">
+                </div>
+                <div class="gallery-item">
+                    <img src="/api/placeholder/200/200" alt="Copo da Felicidade">
+                </div>
+                <div class="gallery-item">
+                    <img src="/api/placeholder/200/200" alt="Vulcão de Limão">
+                </div>
+            </div>
+        </section>
+        
+        <footer>
+            <p>© 2025 Delícia D'Brownie. Todos os direitos reservados.</p>
+        </footer>
+        
+        <a href="https://wa.me/5541997056000" class="whatsapp-button">
+            <i class="fab fa-whatsapp"></i>
+        </a>
+    </div>
 
-    <script src="script.js"></script>
+    <script>
+        // Efeito de carregar produtos de forma suave
+        document.addEventListener('DOMContentLoaded', function() {
+            const productItems = document.querySelectorAll('.product-item');
+            
+            productItems.forEach((item, index) => {
+                setTimeout(() => {
+                    item.style.opacity = '0';
+                    item.style.transform = 'translateY(20px)';
+                    item.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                    
+                    setTimeout(() => {
+                        item.style.opacity = '1';
+                        item.style.transform = 'translateY(0)';
+                    }, 100);
+                }, index * 100);
+            });
+            
+            // Adiciona efeito de hover aos itens do produto
+            productItems.forEach(item => {
+                item.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-5px)';
+                    this.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.1)';
+                });
+                
+                item.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                    this.style.boxShadow = 'none';
+                });
+            });
+        });
+    </script>
 </body>
 </html>
