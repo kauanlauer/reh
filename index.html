@@ -3,854 +3,217 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Delícia D'Brownie</title>
+    <title>Delícia D'Brownie - Cardápio</title>
+    <link rel="stylesheet" href="styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --primary: #4F3022;
-            --secondary: #CB8D56;
-            --accent: #E8B38C;
-            --light: #FFF4E8;
-            --dark: #2A1B13;
-            --white: #FFFFFF;
-            --gray: #F9F9F9;
-        }
-        
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: 'Poppins', sans-serif;
-            background-color: var(--light);
-            color: var(--dark);
-            line-height: 1.6;
-        }
-        
-        h1, h2, h3, h4, h5 {
-            font-family: 'Playfair Display', serif;
-            font-weight: 600;
-        }
-        
-        .container {
-            width: 100%;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-        
-        /* Header Styles */
-        header {
-            background-color: var(--white);
-            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
-            position: fixed;
-            width: 100%;
-            z-index: 1000;
-        }
-        
-        .header-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 0;
-        }
-        
-        .logo {
-            font-size: 28px;
-            color: var(--primary);
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .logo span {
-            color: var(--secondary);
-        }
-        
-        .logo-icon {
-            width: 40px;
-            height: 40px;
-        }
-        
-        .menu-toggle {
-            display: none;
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 24px;
-            color: var(--primary);
-        }
-        
-        nav ul {
-            display: flex;
-            list-style: none;
-            gap: 30px;
-        }
-        
-        nav a {
-            text-decoration: none;
-            color: var(--dark);
-            font-weight: 500;
-            position: relative;
-            transition: color 0.3s;
-        }
-        
-        nav a:hover {
-            color: var(--secondary);
-        }
-        
-        nav a::after {
-            content: '';
-            position: absolute;
-            width: 0;
-            height: 2px;
-            bottom: -5px;
-            left: 0;
-            background-color: var(--secondary);
-            transition: width 0.3s;
-        }
-        
-        nav a:hover::after {
-            width: 100%;
-        }
-        
-        /* Hero Section */
-        .hero {
-            height: 100vh;
-            background: linear-gradient(rgba(42, 27, 19, 0.5), rgba(42, 27, 19, 0.3)), url('/api/placeholder/1500/800') center/cover no-repeat;
-            color: var(--white);
-            display: flex;
-            align-items: center;
-            text-align: center;
-            padding-top: 70px; /* Compensate for fixed header */
-        }
-        
-        .hero-content {
-            max-width: 800px;
-            margin: 0 auto;
-        }
-        
-        .hero h1 {
-            font-size: 64px;
-            margin-bottom: 20px;
-            line-height: 1.2;
-        }
-        
-        .hero p {
-            font-size: 20px;
-            margin-bottom: 30px;
-            font-weight: 300;
-        }
-        
-        .btn {
-            display: inline-block;
-            padding: 14px 30px;
-            border-radius: 50px;
-            text-decoration: none;
-            font-weight: 600;
-            transition: all 0.3s;
-            border: none;
-            cursor: pointer;
-        }
-        
-        .btn-primary {
-            background-color: var(--secondary);
-            color: var(--white);
-        }
-        
-        .btn-primary:hover {
-            background-color: var(--primary);
-            transform: translateY(-3px);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-        }
-        
-        /* About Section */
-        .about {
-            padding: 120px 0;
-            background-color: var(--white);
-        }
-        
-        .section-header {
-            text-align: center;
-            margin-bottom: 60px;
-        }
-        
-        .section-header h2 {
-            font-size: 42px;
-            color: var(--primary);
-            margin-bottom: 15px;
-        }
-        
-        .section-header p {
-            font-size: 18px;
-            color: var(--dark);
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        
-        .about-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 40px;
-        }
-        
-        .about-card {
-            background-color: var(--gray);
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-            transition: transform 0.3s;
-        }
-        
-        .about-card:hover {
-            transform: translateY(-10px);
-        }
-        
-        .about-card img {
-            width: 100%;
-            height: 250px;
-            object-fit: cover;
-        }
-        
-        .about-card-content {
-            padding: 25px;
-        }
-        
-        .about-card h3 {
-            font-size: 24px;
-            margin-bottom: 15px;
-            color: var(--primary);
-        }
-        
-        .about-card p {
-            margin-bottom: 15px;
-            color: var(--dark);
-        }
-        
-        /* Menu Section */
-        .menu {
-            padding: 120px 0;
-            background-color: var(--light);
-        }
-        
-        .tabs {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 40px;
-            flex-wrap: wrap;
-        }
-        
-        .tab-btn {
-            padding: 12px 25px;
-            border: none;
-            background: var(--white);
-            color: var(--dark);
-            font-family: 'Poppins', sans-serif;
-            font-weight: 500;
-            cursor: pointer;
-            border-radius: 50px;
-            transition: all 0.3s;
-        }
-        
-        .tab-btn.active, .tab-btn:hover {
-            background-color: var(--secondary);
-            color: var(--white);
-        }
-        
-        .menu-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-            gap: 30px;
-        }
-        
-        .menu-item {
-            background-color: var(--white);
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-            transition: transform 0.3s;
-        }
-        
-        .menu-item:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
-        }
-        
-        .menu-item-img {
-            height: 250px;
-            width: 100%;
-            object-fit: cover;
-        }
-        
-        .menu-item-content {
-            padding: 25px;
-        }
-        
-        .menu-item-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-        
-        .menu-item-title {
-            font-size: 24px;
-            color: var(--primary);
-        }
-        
-        .menu-item-price {
-            font-family: 'Playfair Display', serif;
-            font-size: 22px;
-            color: var(--secondary);
-            font-weight: 600;
-        }
-        
-        .menu-item-description {
-            color: var(--dark);
-            margin-bottom: 20px;
-        }
-        
-        .price-options {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-top: 10px;
-        }
-        
-        .price-option {
-            background-color: var(--light);
-            padding: 8px 15px;
-            border-radius: 50px;
-            font-size: 14px;
-            font-weight: 500;
-        }
-        
-        /* Gallery Section */
-        .gallery {
-            padding: 120px 0;
-            background-color: var(--white);
-        }
-        
-        .gallery-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 20px;
-        }
-        
-        .gallery-item {
-            position: relative;
-            overflow: hidden;
-            border-radius: 10px;
-            height: 300px;
-        }
-        
-        .gallery-item img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transition: transform 0.5s;
-        }
-        
-        .gallery-item:hover img {
-            transform: scale(1.1);
-        }
-        
-        .gallery-overlay {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
-            padding: 20px;
-            color: var(--white);
-            transform: translateY(100%);
-            transition: transform 0.3s;
-        }
-        
-        .gallery-item:hover .gallery-overlay {
-            transform: translateY(0);
-        }
-        
-        /* Features Section */
-        .features {
-            padding: 120px 0;
-            background-color: var(--primary);
-            color: var(--white);
-        }
-        
-        .features h2 {
-            color: var(--white);
-        }
-        
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 40px;
-            margin-top: 60px;
-        }
-        
-        .feature {
-            text-align: center;
-        }
-        
-        .feature-icon {
-            width: 80px;
-            height: 80px;
-            background-color: var(--secondary);
-            border-radius: 50%;
-            margin: 0 auto 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 30px;
-        }
-        
-        .feature h3 {
-            font-size: 22px;
-            margin-bottom: 15px;
-        }
-        
-        /* Contact Section */
-        .contact {
-            padding: 120px 0;
-            background-color: var(--light);
-        }
-        
-        .contact-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 40px;
-        }
-        
-        .contact-form {
-            background-color: var(--white);
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-        }
-        
-        .form-group {
-            margin-bottom: 20px;
-        }
-        
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-        }
-        
-        .form-control {
-            width: 100%;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            font-family: 'Poppins', sans-serif;
-            transition: border-color 0.3s;
-        }
-        
-        .form-control:focus {
-            outline: none;
-            border-color: var(--secondary);
-        }
-        
-        textarea.form-control {
-            resize: vertical;
-            min-height: 120px;
-        }
-        
-        .contact-info {
-            padding: 40px;
-            background-color: var(--secondary);
-            border-radius: 10px;
-            color: var(--white);
-        }
-        
-        .contact-info h3 {
-            font-size: 28px;
-            margin-bottom: 20px;
-        }
-        
-        .info-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        
-        .info-icon {
-            font-size: 24px;
-            color: var(--white);
-        }
-        
-        .info-content h4 {
-            font-size: 18px;
-            margin-bottom: 5px;
-            font-family: 'Poppins', sans-serif;
-        }
-        
-        .social-links {
-            display: flex;
-            gap: 15px;
-            margin-top: 30px;
-        }
-        
-        .social-link {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 40px;
-            height: 40px;
-            background-color: var(--white);
-            color: var(--secondary);
-            border-radius: 50%;
-            text-decoration: none;
-            transition: all 0.3s;
-        }
-        
-        .social-link:hover {
-            background-color: var(--primary);
-            color: var(--white);
-            transform: translateY(-3px);
-        }
-        
-        /* Footer */
-        footer {
-            background-color: var(--dark);
-            color: var(--white);
-            padding: 60px 0 30px;
-        }
-        
-        .footer-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 40px;
-            margin-bottom: 40px;
-        }
-        
-        .footer-col h3 {
-            font-size: 22px;
-            margin-bottom: 20px;
-            position: relative;
-            padding-bottom: 10px;
-        }
-        
-        .footer-col h3::after {
-            content: '';
-            position: absolute;
-            left: 0;
-            bottom: 0;
-            width: 50px;
-            height: 2px;
-            background-color: var(--secondary);
-        }
-        
-        .footer-nav li {
-            margin-bottom: 10px;
-            list-style: none;
-        }
-        
-        .footer-nav a {
-            color: #ccc;
-            text-decoration: none;
-            transition: color 0.3s;
-        }
-        
-        .footer-nav a:hover {
-            color: var(--secondary);
-        }
-        
-        .footer-bottom {
-            text-align: center;
-            padding-top: 30px;
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            font-size: 14px;
-            color: #999;
-        }
-        
-        /* Mobile Responsive */
-        @media (max-width: 991px) {
-            .hero h1 {
-                font-size: 48px;
-            }
-            
-            .section-header h2 {
-                font-size: 36px;
-            }
-            
-            .menu-toggle {
-                display: block;
-            }
-            
-            nav {
-                position: fixed;
-                top: 70px;
-                left: -100%;
-                width: 80%;
-                height: calc(100vh - 70px);
-                background-color: var(--white);
-                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-                transition: left 0.3s;
-                z-index: 1000;
-            }
-            
-            nav.active {
-                left: 0;
-            }
-            
-            nav ul {
-                flex-direction: column;
-                padding: 30px;
-            }
-            
-            nav li {
-                margin-bottom: 15px;
-            }
-        }
-        
-        @media (max-width: 768px) {
-            .hero h1 {
-                font-size: 36px;
-            }
-            
-            .hero p {
-                font-size: 18px;
-            }
-            
-            .menu-grid, .about-grid, .gallery-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Poppins:wght@300;400;500&family=Dancing+Script:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-    <!-- Header -->
     <header>
-        <div class="container">
-            <div class="header-content">
-                <a href="#" class="logo">
-                    <svg class="logo-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#4F3022" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M8 3v18M16 3v18"></path>
-                        <path d="M3 16h18M3 8h18"></path>
-                        <path d="M8 12h8"></path>
-                    </svg>
-                    Delícia <span>D'Brownie</span>
-                </a>
-                <button class="menu-toggle" id="menuToggle">☰</button>
-                <nav id="mainNav">
-                    <ul>
-                        <li><a href="#home">Início</a></li>
-                        <li><a href="#about">Sobre Nós</a></li>
-                        <li><a href="#menu">Cardápio</a></li>
-                        <li><a href="#gallery">Galeria</a></li>
-                        <li><a href="#contact">Contato</a></li>
-                    </ul>
-                </nav>
-            </div>
+        <div class="logo">
+            <img src="https://via.placeholder.com/80" alt="Logo Delícia D'Brownie">
+            <h1>Delícia D'Brownie</h1>
         </div>
     </header>
 
-    <!-- Hero Section -->
-    <section class="hero" id="home">
-        <div class="container">
-            <div class="hero-content">
-                <h1>Deliciosos Momentos<br>Experiências Doces</h1>
-                <p>Nossa paixão é criar doces artesanais que transformam momentos em memórias inesquecíveis</p>
-                <a href="#menu" class="btn btn-primary">Ver Cardápio</a>
-            </div>
-        </div>
-    </section>
+    <main>
+        <!-- Cardápio de Páscoa -->
+        <section class="easter-menu">
+            <div class="easter-card">
+                <div class="easter-header">
+                    <div class="bunny-icon">
+                        <i class="fas fa-egg"></i>
+                    </div>
+                    <h2>Cardápio Gourmet de</h2>
+                    <h3>páscoa</h3>
+                </div>
 
-    <!-- About Section -->
-    <section class="about" id="about">
-        <div class="container">
-            <div class="section-header">
-                <h2>Nossa História</h2>
-                <p>Uma jornada de sabor e dedicação para criar as mais deliciosas experiências</p>
-            </div>
-            <div class="about-grid">
-                <div class="about-card">
-                    <img src="/api/placeholder/400/300" alt="Ingredientes Premium">
-                    <div class="about-card-content">
-                        <h3>Ingredientes Premium</h3>
-                        <p>Utilizamos apenas ingredientes de primeira qualidade em nossas massas e recheios. Chocolates nobres selecionados garantem o sabor único de nossas criações.</p>
+                <div class="menu-block">
+                    <h4>Ovo de colher</h4>
+                    <div class="price-options">
+                        <span>200g - R$30,00</span>
+                        <span>300g - R$45,00</span>
+                        <span>500g - R$55,00</span>
                     </div>
                 </div>
-                <div class="about-card">
-                    <img src="/api/placeholder/400/300" alt="Produção Artesanal">
-                    <div class="about-card-content">
-                        <h3>Produção Artesanal</h3>
-                        <p>Cada item é preparado com cuidado e atenção aos detalhes. Nossas receitas exclusivas foram desenvolvidas para proporcionar uma experiência sensorial única.</p>
-                    </div>
-                </div>
-                <div class="about-card">
-                    <img src="/api/placeholder/400/300" alt="Compromisso com Qualidade">
-                    <div class="about-card-content">
-                        <h3>Compromisso com Qualidade</h3>
-                        <p>Nossos bolos são compostos por 3 camadas de massa e 2 camadas de recheio, garantindo o equilíbrio perfeito entre sabores e texturas.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
 
-    <!-- Menu Section -->
-    <section class="menu" id="menu">
-        <div class="container">
-            <div class="section-header">
-                <h2>Nosso Cardápio</h2>
-                <p>Descubra o sabor das nossas criações artesanais feitas com amor e ingredientes selecionados</p>
+                <div class="menu-block">
+                    <h4>Escolha sua casca</h4>
+                    <div class="options-grid">
+                        <div class="option-column">
+                            <div class="option-item">Chocolate ao Leite</div>
+                            <div class="option-item">Chocolate Branco</div>
+                        </div>
+                        <div class="option-column">
+                            <div class="option-item">Chocolate Crocante</div>
+                            <div class="option-item">Chocolate Belga</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="menu-block">
+                    <h4>Escolha seu recheio</h4>
+                    <div class="options-grid">
+                        <div class="option-column">
+                            <div class="option-item">Brigadeiro</div>
+                            <div class="option-item">Maracujá</div>
+                            <div class="option-item">Beijinho</div>
+                        </div>
+                        <div class="option-column">
+                            <div class="option-item">Brownie</div>
+                            <div class="option-item">Pistache</div>
+                            <div class="option-item">Paçoca</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="menu-block">
+                    <h4>Adicional - R$5,00</h4>
+                    <div class="options-grid">
+                        <div class="option-column">
+                            <div class="option-item">Creme de Avelã</div>
+                            <div class="option-item">Morango</div>
+                        </div>
+                        <div class="option-column">
+                            <div class="option-item">Leite em pó</div>
+                            <div class="option-item">Uva Verde</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="menu-footer">
+                    <p>Faça seu pedido até 05/04</p>
+                    <p>Necessário realizar 50% do pagamento no ato do pedido.</p>
+                    <p>Entrega: delivery ou retirada no local.</p>
+                </div>
             </div>
-            <div class="tabs">
+        </section>
+
+        <!-- Cardápio Regular -->
+        <section class="regular-menu">
+            <div class="category-tabs">
                 <button class="tab-btn active" data-tab="bolos">Bolos</button>
                 <button class="tab-btn" data-tab="brownies">Brownies</button>
                 <button class="tab-btn" data-tab="docinhos">Docinhos</button>
-                <button class="tab-btn" data-tab="especiais">Especiais</button>
             </div>
-            <div class="menu-grid" id="tab-bolos">
+
+            <div class="tab-content" id="bolos">
                 <div class="menu-item">
-                    <img src="/api/placeholder/400/300" alt="Bolo Prestígio" class="menu-item-img">
-                    <div class="menu-item-content">
-                        <div class="menu-item-header">
-                            <h3 class="menu-item-title">Bolo Prestígio</h3>
-                        </div>
-                        <p class="menu-item-description">Massa amanteigada cacau com brigadeiro cremoso de coco ralado.</p>
-                        <div class="price-options">
-                            <span class="price-option">PP: R$ 110,00</span>
-                            <span class="price-option">P: R$ 150,00</span>
-                            <span class="price-option">M: R$ 190,00</span>
-                            <span class="price-option">G: R$ 230,00</span>
-                        </div>
+                    <h3>Bolo Prestígio</h3>
+                    <p>Massa amanteigada cacau com brigadeiro cremoso de coco ralado.</p>
+                    <div class="price-list">
+                        <span>PP: R$110,00</span>
+                        <span>P: R$150,00</span>
+                        <span>M: R$190,00</span>
+                        <span>G: R$230,00</span>
                     </div>
                 </div>
+
                 <div class="menu-item">
-                    <img src="/api/placeholder/400/300" alt="Bolo Brigadeiro" class="menu-item-img">
-                    <div class="menu-item-content">
-                        <div class="menu-item-header">
-                            <h3 class="menu-item-title">Bolo Brigadeiro</h3>
-                        </div>
-                        <p class="menu-item-description">Massa amanteigada cacau com brigadeiro de chocolate ao leite.</p>
-                        <div class="price-options">
-                            <span class="price-option">PP: R$ 110,00</span>
-                            <span class="price-option">P: R$ 150,00</span>
-                            <span class="price-option">M: R$ 190,00</span>
-                            <span class="price-option">G: R$ 230,00</span>
-                        </div>
+                    <h3>Bolo Brigadeiro</h3>
+                    <p>Massa amanteigada cacau com brigadeiro de chocolate ao leite.</p>
+                    <div class="price-list">
+                        <span>PP: R$110,00</span>
+                        <span>P: R$150,00</span>
+                        <span>M: R$190,00</span>
+                        <span>G: R$230,00</span>
                     </div>
                 </div>
+
                 <div class="menu-item">
-                    <img src="/api/placeholder/400/300" alt="Bolo Bem Casado" class="menu-item-img">
-                    <div class="menu-item-content">
-                        <div class="menu-item-header">
-                            <h3 class="menu-item-title">Bolo Bem Casado</h3>
-                        </div>
-                        <p class="menu-item-description">Massa amanteigada baunilha com recheio de doce de leite caseiro, feito aqui na doceria.</p>
-                        <div class="price-options">
-                            <span class="price-option">PP: R$ 110,00</span>
-                            <span class="price-option">P: R$ 150,00</span>
-                            <span class="price-option">M: R$ 190,00</span>
-                            <span class="price-option">G: R$ 230,00</span>
-                        </div>
+                    <h3>Bolo Bem Casado</h3>
+                    <p>Massa amanteigada baunilha com recheio de doce de leite caseiro.</p>
+                    <div class="price-list">
+                        <span>PP: R$110,00</span>
+                        <span>P: R$150,00</span>
+                        <span>M: R$190,00</span>
+                        <span>G: R$230,00</span>
                     </div>
                 </div>
+
                 <div class="menu-item">
-                    <img src="/api/placeholder/400/300" alt="Bolo Maracujá Trufado" class="menu-item-img">
-                    <div class="menu-item-content">
-                        <div class="menu-item-header">
-                            <h3 class="menu-item-title">Bolo Maracujá Trufado</h3>
-                        </div>
-                        <p class="menu-item-description">Massa amanteigada cacau, com uma camada de brigadeiro ao leite e uma de brigadeiro de maracujá feito com geleia natural direto da fruta.</p>
-                        <div class="price-options">
-                            <span class="price-option">PP: R$ 110,00</span>
-                            <span class="price-option">P: R$ 150,00</span>
-                            <span class="price-option">M: R$ 190,00</span>
-                            <span class="price-option">G: R$ 230,00</span>
-                        </div>
+                    <h3>Bolo Ninho com Morango</h3>
+                    <p>Massa aveludada red velvet com brigadeiro de ninho e geleia de morango.</p>
+                    <div class="price-list">
+                        <span>PP: R$130,00</span>
+                        <span>P: R$170,00</span>
+                        <span>M: R$200,00</span>
+                        <span>G: R$250,00</span>
                     </div>
                 </div>
+            </div>
+
+            <div class="tab-content" id="brownies" style="display: none;">
                 <div class="menu-item">
-                    <img src="/api/placeholder/400/300" alt="Bolo Ninho com Geleia de Morango" class="menu-item-img">
-                    <div class="menu-item-content">
-                        <div class="menu-item-header">
-                            <h3 class="menu-item-title">Bolo Ninho com Morango</h3>
-                        </div>
-                        <p class="menu-item-description">Massa aveludada red velvet com brigadeiro de ninho com uma fina camada de geleia de morango caseira, feita aqui na doceria.</p>
-                        <div class="price-options">
-                            <span class="price-option">PP: R$ 130,00</span>
-                            <span class="price-option">P: R$ 170,00</span>
-                            <span class="price-option">M: R$ 200,00</span>
-                            <span class="price-option">G: R$ 250,00</span>
-                        </div>
+                    <h3>Brownie Tradicional</h3>
+                    <p>Brownie tradicional com nozes, denso e úmido.</p>
+                    <div class="price-list">
+                        <span>Unidade: R$12,00</span>
+                        <span>Caixa 6 unidades: R$65,00</span>
                     </div>
                 </div>
+
                 <div class="menu-item">
-                    <img src="/api/placeholder/400/300" alt="Bolo Pistache com Geleia de Morango" class="menu-item-img">
-                    <div class="menu-item-content">
-                        <div class="menu-item-header">
-                            <h3 class="menu-item-title">Bolo Pistache com Morango</h3>
-                        </div>
-                        <p class="menu-item-description">Massa amanteigada baunilha com brigadeiro de pistache feito com pasta 100% pistache feita aqui na doceria, e uma fina camada de geleia de morango.</p>
-                        <div class="price-options">
-                            <span class="price-option">PP: R$ 130,00</span>
-                            <span class="price-option">P: R$ 170,00</span>
-                            <span class="price-option">M: R$ 200,00</span>
-                            <span class="price-option">G: R$ 250,00</span>
-                        </div>
+                    <h3>Brownie Recheado</h3>
+                    <p>Brownie recheado com doce de leite ou nutella.</p>
+                    <div class="price-list">
+                        <span>Unidade: R$15,00</span>
+                        <span>Caixa 6 unidades: R$80,00</span>
                     </div>
                 </div>
+            </div>
+
+            <div class="tab-content" id="docinhos" style="display: none;">
+                <div class="menu-item">
+                    <h3>Brigadeiro Gourmet</h3>
+                    <p>Brigadeiro cremoso, feito com chocolate belga.</p>
+                    <div class="price-list">
+                        <span>Unidade: R$3,50</span>
+                        <span>Cento: R$300,00</span>
+                    </div>
+                </div>
+
+                <div class="menu-item">
+                    <h3>Beijinho Gourmet</h3>
+                    <p>Beijinho cremoso, feito com coco fresco ralado.</p>
+                    <div class="price-list">
+                        <span>Unidade: R$3,50</span>
+                        <span>Cento: R$300,00</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="info-block">
+            <h2>Informações Importantes</h2>
+            <ul>
+                <li>Nossos bolos possuem 3 camadas de massa e 2 de recheio</li>
+                <li>Todos os bolos são cobertos com chantilly estabilizado</li>
+                <li>Decorações inclusas: trabalho de bico simples, espatulado liso</li>
+                <li>Necessário agendar com antecedência</li>
+                <li>Aceitamos cartões e PIX</li>
+            </ul>
+        </section>
+    </main>
+
+    <footer>
+        <div class="contact-info">
+            <a href="https://wa.me/5500000000000" class="contact-btn">
+                <i class="fab fa-whatsapp"></i>
+                Fazer Pedido
+            </a>
+            <div class="social-links">
+                <a href="#" class="social-icon"><i class="fab fa-instagram"></i></a>
+                <a href="#" class="social-icon"><i class="fab fa-facebook-f"></i></a>
             </div>
         </div>
-    </section>
-
-    <!-- Gallery Section -->
-    <section class="gallery" id="gallery">
-        <div class="container">
-            <div class="section-header">
-                <h2>Inspirações</h2>
-                <p>Conheça algumas de nossas criações que encantam os olhos e o paladar</p>
-            </div>
-            <div class="gallery-grid">
-                <div class="gallery-item">
-                    <img src="/api/placeholder/400/400" alt="Inspiração 1">
-                    <div class="gallery-overlay">
-                        <h3>Cake Design Personalizado</h3>
-                    </div>
-                </div>
-                <div class="gallery-item">
-                    <img src="/api/placeholder/400/400" alt="Inspiração 2">
-                    <div class="gallery-overlay">
-                        <h3>Bolos Temáticos</h3>
-                    </div>
-                </div>
-                <div class="gallery-item">
-                    <img src="/api/placeholder/400/400" alt="Inspiração 3">
-                    <div class="gallery-overlay">
-                        <h3>Arte em Confeitaria</h3>
-                    </div>
-                </div>
-                <div class="gallery-item">
-                    <img src="/api/placeholder/400/400" alt="Inspiração 4">
-                    <div class="gallery-overlay">
-                        <h3>Texturas e Sabores</h3>
-                    </div>
-                </div>
-            </div>
+        <div class="copyright">
+            <p>&copy; 2025 Delícia D'Brownie. Todos os direitos reservados.</p>
         </div>
-    </section>
+    </footer>
 
-    <!-- Features Section -->
-    <section class="features">
-        <div class="container">
-            <div class="section-header">
-                <h2>Importante</h2>
-                <p>Informações essenciais para garantir uma experiência perfeita</p>
-            </div>
-            <div class="features-grid">
-                <div class="feature">
-                    <div class="feature-icon">
-                        <svg xmlns="http://www.w3.
+    <script src="script.js"></script>
+</body>
+</html>

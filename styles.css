@@ -1,0 +1,375 @@
+/* Configurações Gerais */
+:root {
+    --primary: #5C2D0B;
+    --secondary: #8B4513;
+    --accent: #D2691E;
+    --light-bg: #FFF8F0;
+    --dark: #3A1F0E;
+    --white: #FFFFFF;
+    --gray: #F5F5F5;
+    --text: #333333;
+    --border-radius: 15px;
+    --shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--light-bg);
+    color: var(--text);
+    line-height: 1.6;
+    padding: 0;
+    margin: 0;
+}
+
+h1, h2, h3, h4 {
+    font-family: 'Playfair Display', serif;
+    color: var(--primary);
+}
+
+/* Header */
+header {
+    background-color: var(--white);
+    box-shadow: var(--shadow);
+    padding: 15px 0;
+    text-align: center;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+}
+
+.logo img {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+}
+
+.logo h1 {
+    font-size: 1.5rem;
+    margin: 0;
+}
+
+/* Main Content */
+main {
+    max-width: 600px;
+    margin: 20px auto;
+    padding: 0 15px;
+}
+
+section {
+    margin-bottom: 30px;
+}
+
+/* Cardápio de Páscoa */
+.easter-menu {
+    margin-bottom: 40px;
+}
+
+.easter-card {
+    background-color: var(--white);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow);
+    padding: 25px;
+    overflow: hidden;
+    position: relative;
+}
+
+.easter-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100%;
+    background: url('https://via.placeholder.com/20') repeat;
+    opacity: 0.03;
+    z-index: 0;
+}
+
+.easter-header {
+    text-align: center;
+    position: relative;
+    margin-bottom: 25px;
+    z-index: 1;
+}
+
+.bunny-icon {
+    width: 60px;
+    height: 60px;
+    background-color: var(--secondary);
+    color: var(--white);
+    border-radius: 50%;
+    margin: 0 auto 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+}
+
+.easter-header h2 {
+    font-size: 1.4rem;
+    margin-bottom: 5px;
+}
+
+.easter-header h3 {
+    font-family: 'Dancing Script', cursive;
+    font-size: 2.5rem;
+    color: var(--accent);
+    margin: 0;
+    line-height: 1;
+}
+
+.menu-block {
+    position: relative;
+    z-index: 1;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px dashed #e0e0e0;
+}
+
+.menu-block:last-of-type {
+    border-bottom: none;
+}
+
+.menu-block h4 {
+    background-color: var(--primary);
+    color: var(--white);
+    display: inline-block;
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 1rem;
+    margin-bottom: 15px;
+}
+
+.price-options {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.price-options span {
+    font-weight: 500;
+}
+
+.options-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.option-item {
+    padding: 5px 0 5px 15px;
+    position: relative;
+}
+
+.option-item::before {
+    content: '•';
+    position: absolute;
+    left: 0;
+    color: var(--accent);
+}
+
+.menu-footer {
+    margin-top: 20px;
+    font-size: 0.9rem;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+}
+
+.menu-footer p {
+    margin-bottom: 5px;
+}
+
+/* Cardápio Regular */
+.category-tabs {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.tab-btn {
+    padding: 8px 20px;
+    background-color: var(--gray);
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.tab-btn.active {
+    background-color: var(--primary);
+    color: var(--white);
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content:first-of-type {
+    display: block;
+}
+
+.menu-item {
+    background-color: var(--white);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    margin-bottom: 15px;
+    box-shadow: var(--shadow);
+}
+
+.menu-item h3 {
+    margin-bottom: 10px;
+    font-size: 1.2rem;
+}
+
+.menu-item p {
+    margin-bottom: 15px;
+    color: #666;
+    font-size: 0.95rem;
+}
+
+.price-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.price-list span {
+    background-color: var(--gray);
+    padding: 5px 10px;
+    border-radius: 5px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+/* Info Block */
+.info-block {
+    background-color: var(--white);
+    border-radius: var(--border-radius);
+    padding: 20px;
+    box-shadow: var(--shadow);
+}
+
+.info-block h2 {
+    text-align: center;
+    margin-bottom: 15px;
+    font-size: 1.3rem;
+}
+
+.info-block ul {
+    list-style: none;
+}
+
+.info-block li {
+    padding: 5px 0 5px 20px;
+    position: relative;
+}
+
+.info-block li::before {
+    content: '•';
+    position: absolute;
+    left: 5px;
+    color: var(--accent);
+}
+
+/* Footer */
+footer {
+    background-color: var(--primary);
+    color: var(--white);
+    padding: 30px 0 20px;
+    text-align: center;
+}
+
+.contact-info {
+    margin-bottom: 20px;
+}
+
+.contact-btn {
+    display: inline-block;
+    background-color: #25D366;
+    color: var(--white);
+    text-decoration: none;
+    padding: 10px 25px;
+    border-radius: 30px;
+    margin-bottom: 15px;
+    font-weight: 500;
+    transition: transform 0.3s;
+}
+
+.contact-btn:hover {
+    transform: translateY(-3px);
+}
+
+.contact-btn i {
+    margin-right: 8px;
+}
+
+.social-links {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.social-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background-color: rgba(255, 255, 255, 0.2);
+    color: var(--white);
+    border-radius: 50%;
+    text-decoration: none;
+    transition: background-color 0.3s;
+}
+
+.social-icon:hover {
+    background-color: rgba(255, 255, 255, 0.3);
+}
+
+.copyright {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 15px;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* Responsividade */
+@media (max-width: 500px) {
+    .options-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .option-column + .option-column {
+        margin-top: 5px;
+    }
+    
+    .tab-btn {
+        padding: 6px 15px;
+        font-size: 0.9rem;
+    }
+    
+    .easter-header h3 {
+        font-size: 2rem;
+    }
+}
