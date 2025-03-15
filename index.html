@@ -395,24 +395,43 @@
     </div>
     
     <!-- Footer -->
-    <footer class="menu-footer">
-        <div class="footer-decoration"></div>
-        <div class="footer-content">
-            <h3 class="footer-brand">Delícia D'Brownie</h3>
-            
-            <div class="footer-contact">
-                <p><i class="fas fa-phone"></i> (41) 99248-0604</p>
-                <p><i class="fas fa-map-marker-alt"></i> Curitiba, PR</p>
-            </div>
-            
-            <div class="footer-social">
-                <a href="https://www.instagram.com/_delicia_de_brownie_/" target="_blank"><i class="fab fa-instagram"></i></a>
-                <a href="https://wa.me/5541992480604" target="_blank"><i class="fab fa-whatsapp"></i></a>
-            </div>
-            
-            <p class="copyright">© 2025 Delícia D'Brownie - Todos os direitos reservados</p>
+<footer class="menu-footer">
+    <div class="footer-decoration"></div>
+    <div class="footer-content">
+        <h3 class="footer-brand">Delícia D'Brownie</h3>
+        
+        <div class="footer-contact">
+            <p><i class="fas fa-phone"></i> (41) 99248-0604</p>
+            <p><i class="fas fa-map-marker-alt"></i> Curitiba, PR</p>
         </div>
-    </footer>
+        
+        <div class="footer-social">
+            <a href="https://www.instagram.com/_delicia_de_brownie_/" target="_blank"><i class="fab fa-instagram"></i></a>
+            <a href="https://wa.me/5541992480604" target="_blank"><i class="fab fa-whatsapp"></i></a>
+            <a href="#" id="admin-access" class="admin-link"><i class="fas fa-cookie-bite"></i></a>
+        </div>
+        
+        <div class="developer-credits">
+            <p>Desenvolvido por <a href="https://kauanlauer.com.br" target="_blank">Kauan Lauer</a></p>
+        </div>
+        
+        <p class="copyright">© 2025 Delícia D'Brownie - Todos os direitos reservados</p>
+    </div>
+</footer>
+
+<!-- Script para o acesso administrativo -->
+<script>
+document.getElementById('admin-access').addEventListener('click', function(e) {
+    e.preventDefault();
+    const password = prompt('Digite a senha de acesso:');
+    
+    if (password === '1230') {
+        window.location.href = 'admin.html';
+    } else if (password !== null) {
+        alert('Senha incorreta!');
+    }
+});
+</script>
 
 <!-- Adicionar ao final do body, antes dos scripts -->
 

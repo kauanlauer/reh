@@ -2292,3 +2292,84 @@ h1, h2, h3, h4 {
         flex-direction: column;
     }
 }
+
+/* Estilos para o botão de admin disfarçado e os créditos do desenvolvedor */
+
+/* Botão de admin disfarçado */
+.admin-link {
+    opacity: 0.7;
+    transition: all 0.3s ease;
+    color: var(--text-muted) !important;
+}
+
+.admin-link:hover {
+    opacity: 1;
+    transform: rotate(360deg);
+    color: var(--accent-color) !important;
+}
+
+.admin-link i {
+    font-size: 1.2rem;
+}
+
+/* Estilização dos créditos do desenvolvedor */
+.developer-credits {
+    margin: 1.5rem 0 1rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    opacity: 0.8;
+    border-top: 1px solid rgba(226, 182, 118, 0.1);
+    padding-top: 1rem;
+    letter-spacing: 0.02em;
+}
+
+.developer-credits a {
+    color: var(--accent-color);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.developer-credits a::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 1px;
+    bottom: -2px;
+    left: 0;
+    background-color: var(--accent-color);
+    transition: width 0.3s ease;
+}
+
+.developer-credits a:hover {
+    color: var(--accent-light);
+}
+
+.developer-credits a:hover::after {
+    width: 100%;
+}
+
+/* Ajuste do copyright para dar mais espaço ao crédito do desenvolvedor */
+.copyright {
+    margin-top: 0.5rem;
+    opacity: 0.7;
+    font-size: 0.8rem;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+}
+
+.copyright::before {
+    display: none;
+}
+
+/* Ajustes para mobile */
+@media (max-width: 480px) {
+    .developer-credits {
+        margin: 1rem 0 0.8rem;
+        font-size: 0.8rem;
+    }
+    
+    .admin-link i {
+        font-size: 1.1rem;
+    }
+}
