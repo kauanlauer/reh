@@ -1666,6 +1666,7 @@ h1, h2, h3, h4 {
         font-size: 1.3rem;
     }
     
+    
     .add-to-cart-btn {
         opacity: 1;
         visibility: visible;
@@ -1700,3 +1701,60 @@ h1, h2, h3, h4 {
         padding: 0.9rem;
     }
 }
+
+  /* Novo estilo para o botão de adicionar ao carrinho em dispositivos móveis */
+  .add-to-cart-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    bottom: auto;
+    left: auto;
+    transform: none;
+    opacity: 1;
+    visibility: visible;
+    font-size: 0.8rem;
+    padding: 0.5rem 0.8rem;
+    border-radius: 30px;
+    background-color: var(--accent-color);
+    color: var(--dark-color);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+    width: auto;
+    height: auto;
+    z-index: 10;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+ /* Reduza o texto para dispositivos pequenos */
+ .add-to-cart-btn .btn-text {
+    display: none;
+}
+/* Mostre apenas o ícone */
+.add-to-cart-btn i {
+    margin-right: 0;
+    font-size: 1rem;
+}
+ /* Estado ativo do botão */
+ .add-to-cart-btn.added {
+    background-color: #5cb85c;
+}
+
+/* Ajustes de posicionamento para o item-decoration */
+.item-decoration {
+    top: 10px;
+    left: 10px;
+    right: auto;
+    width: 20px;
+    height: 20px;
+}
+/* Estilo específico para dispositivos muito pequenos */
+@media (max-width: 480px) {
+    .add-to-cart-btn {
+        top: 8px;
+        right: 8px;
+        padding: 0.4rem;
+        font-size: 0.8rem;
+    }
+}
+

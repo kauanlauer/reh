@@ -79,7 +79,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!item.querySelector('.add-to-cart-btn')) {
             const addButton = document.createElement('button');
             addButton.className = 'add-to-cart-btn';
-            addButton.innerHTML = '<i class="fas fa-plus"></i> Adicionar ao Pedido';
+            addButton.innerHTML = '<i class="fas fa-plus"></i> Carrinho';
             item.appendChild(addButton);
         }
     });
