@@ -92,31 +92,22 @@ document.addEventListener('DOMContentLoaded', async function() {
                 id: 'novo',
                 title: 'Pedido Recebido',
                 description: 'Seu pedido foi recebido e está sendo preparado para processamento.',
-                active: ['novo', 'preparo', 'entrega', 'concluido'].includes(order.status),
+                active: ['novo', 'preparo', 'concluido'].includes(order.status),
                 date: orderDate
             },
             {
                 id: 'preparo',
-                title: 'Em Preparo',
+                title: 'Em Produção',
                 description: 'Estamos preparando seu pedido com muito carinho.',
-                active: ['preparo', 'entrega', 'concluido'].includes(order.status),
-                date: order.status === 'preparo' || order.status === 'entrega' || order.status === 'concluido' 
-                    ? formatUpdateDate(order.data_atualizacao) 
-                    : ''
-            },
-            {
-                id: 'entrega',
-                title: 'Em Entrega',
-                description: 'Seu pedido saiu para entrega e está a caminho do seu endereço.',
-                active: ['entrega', 'concluido'].includes(order.status),
-                date: order.status === 'entrega' || order.status === 'concluido' 
+                active: ['preparo', 'concluido'].includes(order.status),
+                date: order.status === 'preparo' || order.status === 'concluido' 
                     ? formatUpdateDate(order.data_atualizacao) 
                     : ''
             },
             {
                 id: 'concluido',
-                title: 'Pedido Entregue',
-                description: 'Seu pedido foi entregue com sucesso. Aproveite!',
+                title: 'Pronto para Retirada',
+                description: 'Seu pedido está pronto para retirada no endereço:<br><strong>Coronel João Rodrigues da Silva, 202 - Lapa</strong><br>A retirada do pedido é por conta do cliente.',
                 active: ['concluido'].includes(order.status),
                 date: order.status === 'concluido' 
                     ? formatUpdateDate(order.data_atualizacao) 
@@ -150,6 +141,17 @@ document.addEventListener('DOMContentLoaded', async function() {
             `;
         }
         
+        // Adicionar informação de retirada destacada se o pedido estiver pronto
+        let pickupInfoHtml = '';
+        if (order.status === 'concluido') {
+            pickupInfoHtml = `
+                <div class="pickup-info">
+                    <p><i class="fas fa-map-marker-alt"></i> <strong>Local de Retirada:</strong> Coronel João Rodrigues da Silva, 202 - Lapa</p>
+                    <p><i class="fas fa-info-circle"></i> A retirada do pedido é por conta do cliente.</p>
+                </div>
+            `;
+        }
+        
         // Montar o HTML completo da página
         trackingContent.innerHTML = `
             <div class="order-info">
@@ -164,9 +166,9 @@ document.addEventListener('DOMContentLoaded', async function() {
                 <div class="customer-info">
                     <p><strong>Cliente:</strong> <span>${order.cliente}</span></p>
                     <p><strong>Telefone:</strong> <span>${order.telefone}</span></p>
-                    <p><strong>Endereço:</strong> <span>${order.endereco}</span></p>
-                    ${order.referencia ? `<p><strong>Referência:</strong> <span>${order.referencia}</span></p>` : ''}
                 </div>
+                
+                ${pickupInfoHtml}
                 
                 ${canceledHtml}
                 

@@ -462,44 +462,37 @@ document.getElementById('admin-access').addEventListener('click', function(e) {
               </div>
           </div>
           
-          <!-- Customer Info Form -->
           <form id="orderForm" class="order-form">
-              <h4>Informações para Entrega</h4>
-              
-              <div class="form-group">
-                  <label for="customerName">Nome completo</label>
-                  <input type="text" id="customerName" required>
-              </div>
-              
-              <div class="form-group">
-                  <label for="customerPhone">Telefone</label>
-                  <input type="tel" id="customerPhone" required>
-              </div>
-              
-              <div class="form-group">
-                  <label for="customerAddress">Endereço</label>
-                  <input type="text" id="customerAddress" placeholder="Rua, número, bairro" required>
-              </div>
-              
-              <div class="form-group">
-                  <label for="customerReference">Ponto de referência (opcional)</label>
-                  <input type="text" id="customerReference">
-              </div>
-              
-              <div class="form-group">
-                  <label for="customerNotes">Observações (opcional)</label>
-                  <textarea id="customerNotes" rows="2"></textarea>
-              </div>
-              
-              <div class="cart-total">
-                  <span>Total de itens:</span>
-                  <span class="total-items">0</span>
-              </div>
-              
-              <button type="submit" class="order-submit-btn">
-                  <i class="fab fa-whatsapp"></i> Enviar Pedido pelo WhatsApp
-              </button>
-          </form>
+            <h4>Informações do Pedido</h4>
+            
+            <div class="form-group">
+                <label for="customerName">Nome completo</label>
+                <input type="text" id="customerName" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="customerPhone">WhatsApp</label>
+                <input type="tel" id="customerPhone" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="customerNotes">Observações (opcional)</label>
+                <textarea id="customerNotes" rows="2"></textarea>
+            </div>
+            
+            <div class="cart-total">
+                <span>Total de itens:</span>
+                <span class="total-items">0</span>
+            </div>
+            
+            <button type="submit" class="order-submit-btn">
+                <i class="fab fa-whatsapp"></i> Enviar Pedido pelo WhatsApp
+            </button>
+            
+            <div class="pickup-info">
+                <p><i class="fas fa-info-circle"></i> A retirada do pedido é por conta do cliente no endereço: Coronel João Rodrigues da Silva, 202 - Lapa</p>
+            </div>
+        </form>
       </div>
   </div>
 </div>
