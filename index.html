@@ -7,15 +7,23 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <!-- Decorative leaves -->
-    <div class="leaf-decoration leaf-1"></div>
-    <div class="leaf-decoration leaf-2"></div>
-    <div class="leaf-decoration leaf-3"></div>
-
+    <!-- Elementos decorativos -->
+    <div class="decorative-corner corner-top-left"></div>
+    <div class="decorative-corner corner-top-right"></div>
+    <div class="decorative-corner corner-bottom-left"></div>
+    <div class="decorative-corner corner-bottom-right"></div>
+    
+    <div class="decoration-circle circle-1"></div>
+    <div class="decoration-circle circle-2"></div>
+    <div class="decoration-circle circle-3"></div>
+    
     <!-- Header -->
     <header class="menu-header">
-        <h1 class="brand-name fade-in">Delícia D'Brownie</h1>
-        <p class="brand-tagline fade-in">Experiências doces que encantam os sentidos</p>
+        <div class="brand-wrapper fade-in">
+            <h1 class="brand-name">Delícia D'Brownie</h1>
+            <p class="brand-tagline">Experiências doces que encantam os sentidos</p>
+            <div class="header-decoration"></div>
+        </div>
         
         <div class="social-info fade-in">
             <a href="https://www.instagram.com/_delicia_de_brownie_/" target="_blank">
@@ -38,8 +46,10 @@
     
     <!-- Introduction -->
     <div class="menu-intro fade-in">
-        <h2>Conheça Nossos Produtos</h2>
-        <p>Através deste cardápio exclusivo, você irá descobrir e se apaixonar por nossas criações artesanais, preparadas com ingredientes selecionados e muito carinho. Cada mordida é uma experiência sensorial única!</p>
+        <div class="menu-intro-content">
+            <h2>Conheça Nossos Produtos</h2>
+            <p>Através deste cardápio exclusivo, você irá descobrir e se apaixonar por nossas criações artesanais, preparadas com ingredientes selecionados e muito carinho. Cada mordida é uma experiência sensorial única!</p>
+        </div>
     </div>
     
     <!-- Product Gallery -->
@@ -66,129 +76,147 @@
         
         <div class="menu-items">
             <div class="menu-item stagger-item">
+                <div class="item-decoration"></div>
                 <div class="item-content">
                     <h3 class="item-title">Chocolatudo</h3>
                     <p class="item-description">Uma explosão de chocolate para os verdadeiros apaixonados. A combinação perfeita da massa macia com recheio intenso.</p>
                     <div class="item-specs">
                         <div class="spec-item">
-                            <span class="spec-label">Massa:</span>
+                            <span class="spec-label">Massa</span>
                             <span class="spec-value">Chocolate</span>
                         </div>
                         <div class="spec-item">
-                            <span class="spec-label">Recheio:</span>
+                            <span class="spec-label">Recheio</span>
                             <span class="spec-value">Chocolate</span>
                         </div>
                         <div class="spec-item">
-                            <span class="spec-label">Finalização:</span>
+                            <span class="spec-label">Finalização</span>
                             <span class="spec-value">Brownie e granulado</span>
                         </div>
                     </div>
                 </div>
+                <div class="highlight-dot dot-1"></div>
+                <div class="highlight-dot dot-2"></div>
             </div>
             
             <div class="menu-item stagger-item">
+                <div class="item-decoration"></div>
                 <div class="item-content">
                     <h3 class="item-title">Dois Amores</h3>
                     <p class="item-description">O encontro perfeito entre o chocolate e a suavidade da massa branca, criando uma harmonia de sabores inesquecível.</p>
                     <div class="item-specs">
                         <div class="spec-item">
-                            <span class="spec-label">Massa:</span>
+                            <span class="spec-label">Massa</span>
                             <span class="spec-value">Branca</span>
                         </div>
                         <div class="spec-item">
-                            <span class="spec-label">Recheio:</span>
+                            <span class="spec-label">Recheio</span>
                             <span class="spec-value">Chocolate</span>
                         </div>
                         <div class="spec-item">
-                            <span class="spec-label">Finalização:</span>
+                            <span class="spec-label">Finalização</span>
                             <span class="spec-value">Granulado</span>
                         </div>
                     </div>
                 </div>
+                <div class="highlight-dot dot-3"></div>
+                <div class="highlight-dot dot-4"></div>
             </div>
             
             <div class="menu-item stagger-item">
+                <div class="item-decoration"></div>
                 <div class="item-content">
                     <h3 class="item-title">Delícia de Morango</h3>
                     <p class="item-description">Uma combinação refrescante que une a suavidade da massa branca com a acidez dos morangos selecionados.</p>
                     <div class="item-specs">
                         <div class="spec-item">
-                            <span class="spec-label">Massa:</span>
+                            <span class="spec-label">Massa</span>
                             <span class="spec-value">Branca</span>
                         </div>
                         <div class="spec-item">
-                            <span class="spec-label">Recheio:</span>
+                            <span class="spec-label">Recheio</span>
                             <span class="spec-value">Creme de chocolate branco</span>
                         </div>
                         <div class="spec-item">
-                            <span class="spec-label">Finalização:</span>
+                            <span class="spec-label">Finalização</span>
                             <span class="spec-value">Geleia de morango e morangos</span>
                         </div>
                     </div>
                 </div>
+                <div class="highlight-dot dot-1"></div>
+                <div class="highlight-dot dot-4"></div>
             </div>
             
             <div class="menu-item stagger-item">
+                <div class="item-decoration"></div>
                 <div class="item-content">
                     <h3 class="item-title">Cenourinha</h3>
                     <p class="item-description">O tradicional bolo de cenoura reinventado em formato vulcão, com brigadeiro cremoso que derrete na boca.</p>
                     <div class="item-specs">
                         <div class="spec-item">
-                            <span class="spec-label">Massa:</span>
+                            <span class="spec-label">Massa</span>
                             <span class="spec-value">Cenoura</span>
                         </div>
                         <div class="spec-item">
-                            <span class="spec-label">Recheio:</span>
+                            <span class="spec-label">Recheio</span>
                             <span class="spec-value">Brigadeiro de chocolate</span>
                         </div>
                         <div class="spec-item">
-                            <span class="spec-label">Finalização:</span>
+                            <span class="spec-label">Finalização</span>
                             <span class="spec-value">Granulado</span>
                         </div>
                     </div>
                 </div>
+                <div class="highlight-dot dot-2"></div>
+                <div class="highlight-dot dot-3"></div>
             </div>
             
             <div class="menu-item stagger-item">
+                <div class="item-decoration"></div>
                 <div class="item-content">
                     <h3 class="item-title">Ninho com Avelã</h3>
                     <p class="item-description">A combinação mais aclamada e sofisticada: a delicadeza do leite Ninho com a intensidade do creme de avelã.</p>
                     <div class="item-specs">
                         <div class="spec-item">
-                            <span class="spec-label">Massa:</span>
+                            <span class="spec-label">Massa</span>
                             <span class="spec-value">Branca</span>
                         </div>
                         <div class="spec-item">
-                            <span class="spec-label">Recheio:</span>
+                            <span class="spec-label">Recheio</span>
                             <span class="spec-value">Creme de chocolate branco</span>
                         </div>
                         <div class="spec-item">
-                            <span class="spec-label">Finalização:</span>
+                            <span class="spec-label">Finalização</span>
                             <span class="spec-value">Leite em pó ninho com creme de avelã</span>
                         </div>
                     </div>
                 </div>
+                <div class="highlight-dot dot-1"></div>
+                <div class="highlight-dot dot-3"></div>
             </div>
             
             <div class="menu-item stagger-item">
+                <div class="item-decoration"></div>
                 <div class="item-content">
                     <h3 class="item-title">Red Velvet</h3>
                     <p class="item-description">Elegância em cada pedaço. A textura aveludada da massa vermelha combinada com creme de chocolate branco.</p>
                     <div class="item-specs">
                         <div class="spec-item">
-                            <span class="spec-label">Massa:</span>
+                            <span class="spec-label">Massa</span>
                             <span class="spec-value">Red Velvet</span>
                         </div>
                         <div class="spec-item">
-                            <span class="spec-label">Recheio:</span>
+                            <span class="spec-label">Recheio</span>
                             <span class="spec-value">Creme de chocolate branco</span>
                         </div>
                         <div class="spec-item">
-                            <span class="spec-label">Finalização:</span>
+                            <span class="spec-label">Finalização</span>
                             <span class="spec-value">Creme thesse e morangos</span>
                         </div>
                     </div>
                 </div>
+                <div class="highlight-dot dot-2"></div>
+                <div class="highlight-dot dot-4"></div>
             </div>
         </div>
     </section>
@@ -201,12 +229,13 @@
         
         <div class="menu-items">
             <div class="menu-item stagger-item">
+                <div class="item-decoration"></div>
                 <div class="item-content">
                     <h3 class="item-title">Sanduíche</h3>
                     <p class="item-description">Duas camadas de brownie envolvendo recheios incríveis. Uma tentação irresistível para os amantes de chocolate.</p>
                     <div class="item-specs">
                         <div class="spec-item">
-                            <span class="spec-label">Sabores:</span>
+                            <span class="spec-label">Sabores</span>
                             <span class="spec-value">Chocolate brend</span>
                         </div>
                         <div class="spec-item">
@@ -219,15 +248,18 @@
                         </div>
                     </div>
                 </div>
+                <div class="highlight-dot dot-1"></div>
+                <div class="highlight-dot dot-3"></div>
             </div>
             
             <div class="menu-item stagger-item">
+                <div class="item-decoration"></div>
                 <div class="item-content">
                     <h3 class="item-title">Marmitinha</h3>
                     <p class="item-description">Brownies em porções individuais com coberturas luxuosas. Perfeito para presentear ou se deliciar a qualquer hora.</p>
                     <div class="item-specs">
                         <div class="spec-item">
-                            <span class="spec-label">Sabores:</span>
+                            <span class="spec-label">Sabores</span>
                             <span class="spec-value">Ferrero Rocher</span>
                         </div>
                         <div class="spec-item">
@@ -240,6 +272,8 @@
                         </div>
                     </div>
                 </div>
+                <div class="highlight-dot dot-2"></div>
+                <div class="highlight-dot dot-4"></div>
             </div>
         </div>
     </section>
@@ -252,43 +286,55 @@
         
         <div class="menu-items">
             <div class="menu-item stagger-item">
+                <div class="item-decoration"></div>
                 <div class="item-content">
                     <h3 class="item-title">Morango com Brownie</h3>
                     <p class="item-description">Camadas de brownie, creme aveludado e morangos frescos que formam uma sobremesa inesquecível em cada colherada.</p>
                 </div>
+                <div class="highlight-dot dot-1"></div>
+                <div class="highlight-dot dot-3"></div>
             </div>
             
             <div class="menu-item stagger-item">
+                <div class="item-decoration"></div>
                 <div class="item-content">
                     <h3 class="item-title">Surpresa de Uva</h3>
                     <p class="item-description">O equilíbrio perfeito entre o doce do creme e a acidez das uvas frescas, criando uma experiência surpreendente.</p>
                 </div>
+                <div class="highlight-dot dot-2"></div>
+                <div class="highlight-dot dot-4"></div>
             </div>
         </div>
     </section>
     
     <!-- Call to Action -->
     <div class="cta-section">
-        <h2 class="cta-title">Faça seu pedido agora!</h2>
-        <p class="cta-text">Entre em contato conosco pelo WhatsApp e descubra como nossos produtos artesanais podem adoçar seu dia.</p>
-        <a href="https://wa.me/5541992480604" class="cta-button" target="_blank">Fazer pedido</a>
+        <div class="cta-decoration"></div>
+        <div class="cta-content">
+            <h2 class="cta-title">Faça seu pedido agora!</h2>
+            <p class="cta-text">Entre em contato conosco pelo WhatsApp e descubra como nossos produtos artesanais podem adoçar seu dia.</p>
+            <a href="https://wa.me/5541992480604" class="cta-button" target="_blank">Fazer pedido</a>
+        </div>
     </div>
     
     <!-- Footer -->
     <footer class="menu-footer">
-        <h3 class="footer-brand">Delícia D'Brownie</h3>
-        
-        <div class="footer-contact">
-            <p><i class="fas fa-phone"></i> (41) 99248-0604</p>
-            <p><i class="fas fa-map-marker-alt"></i> Curitiba, PR</p>
+        <div class="footer-decoration"></div>
+        <div class="footer-content">
+            <h3 class="footer-brand">Delícia D'Brownie</h3>
+            
+            <div class="footer-contact">
+                <p><i class="fas fa-phone"></i> (41) 99248-0604</p>
+                <p><i class="fas fa-map-marker-alt"></i> Curitiba, PR</p>
+            </div>
+            
+            <div class="footer-social">
+                <a href="https://www.instagram.com/_delicia_de_brownie_/" target="_blank"><i class="fab fa-instagram"></i></a>
+                <a href="https://wa.me/5541992480604" target="_blank"><i class="fab fa-whatsapp"></i></a>
+            </div>
+            
+            <p class="copyright">© 2025 Delícia D'Brownie - Todos os direitos reservados</p>
         </div>
-        
-        <div class="footer-social">
-            <a href="https://www.instagram.com/_delicia_de_brownie_/" target="_blank"><i class="fab fa-instagram"></i></a>
-            <a href="https://wa.me/5541992480604" target="_blank"><i class="fab fa-whatsapp"></i></a>
-        </div>
-        
-        <p class="copyright">© 2025 Delícia D'Brownie - Todos os direitos reservados</p>
     </footer>
     
     <!-- Font Awesome -->
