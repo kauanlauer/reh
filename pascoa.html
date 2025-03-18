@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cardápio de Páscoa</title>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600&family=Lato:wght@300;400;500;700&display=swap');
         
@@ -23,6 +24,7 @@
             max-width: 600px;
             margin: 0 auto;
             background-image: linear-gradient(to bottom, rgba(248, 241, 232, 0.3), rgba(248, 241, 232, 0.1));
+            position: relative;
         }
         
         .cardapio {
@@ -331,6 +333,318 @@
             background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><circle cx="20" cy="20" r="1" fill="%23e8d9c5" opacity="0.3"/></svg>');
             z-index: -1;
         }
+        
+        /* Estilo do botão de adicionar ao carrinho */
+        .add-to-cart-btn {
+            background-color: #9a7f59;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 6px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            margin-top: 10px;
+            transition: all 0.3s ease;
+        }
+        
+        .add-to-cart-btn:hover {
+            background-color: #8a7049;
+        }
+        
+        .add-to-cart-btn i {
+            margin-right: 5px;
+        }
+        
+        /* Carrinho de compras flutuante */
+        .cart-icon {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background-color: #9a7f59;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+        
+        .cart-icon:hover {
+            transform: scale(1.05);
+            background-color: #8a7049;
+        }
+        
+        .cart-count {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: #e8d9c5;
+            color: #6a5642;
+            border-radius: 50%;
+            width: 25px;
+            height: 25px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 14px;
+            font-weight: bold;
+            border: 2px solid white;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        
+        /* Modal do carrinho */
+        .cart-modal {
+            position: fixed;
+            top: 0;
+            right: -100%;
+            width: 300px;
+            height: 100%;
+            background-color: white;
+            box-shadow: -5px 0 15px rgba(0, 0, 0, 0.1);
+            transition: right 0.3s ease;
+            z-index: 1001;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .cart-modal.open {
+            right: 0;
+        }
+        
+        .cart-header {
+            background-color: #9a7f59;
+            color: white;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .cart-header h3 {
+            margin: 0;
+            color: white;
+            font-size: 18px;
+        }
+        
+        .cart-header h3::after {
+            display: none;
+        }
+        
+        .close-cart {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        
+        .cart-items {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+        }
+        
+        .cart-item {
+            border-bottom: 1px solid #e8d9c5;
+            padding: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .cart-item-info {
+            flex: 1;
+        }
+        
+        .cart-item-name {
+            font-weight: 600;
+            color: #6a5642;
+            margin-bottom: 5px;
+        }
+        
+        .cart-item-variant {
+            font-size: 12px;
+            color: #9a7f59;
+            font-style: italic;
+        }
+        
+        .cart-item-price {
+            color: #9a7f59;
+            font-weight: 500;
+            margin-top: 3px;
+        }
+        
+        .cart-item-controls {
+            display: flex;
+            align-items: center;
+        }
+        
+        .cart-item-quantity {
+            display: flex;
+            align-items: center;
+            border: 1px solid #e8d9c5;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .quantity-btn {
+            background: #f8f5f0;
+            border: none;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+        }
+        
+        .quantity-input {
+            width: 30px;
+            border: none;
+            background: none;
+            text-align: center;
+            font-size: 14px;
+            color: #6a5642;
+        }
+        
+        .remove-item {
+            background: none;
+            border: none;
+            color: #dc3545;
+            margin-left: 10px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .empty-cart {
+            text-align: center;
+            padding: 30px 0;
+            color: #9a7f59;
+        }
+        
+        .empty-cart i {
+            font-size: 40px;
+            margin-bottom: 10px;
+            opacity: 0.7;
+        }
+        
+        .cart-footer {
+            background-color: #f8f5f0;
+            padding: 15px;
+            border-top: 1px solid #e8d9c5;
+        }
+        
+        .cart-total {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            font-weight: 600;
+            color: #6a5642;
+        }
+        
+        .customer-info {
+            margin-top: 15px;
+        }
+        
+        .customer-info h4 {
+            font-size: 16px;
+            margin-bottom: 10px;
+            color: #6a5642;
+        }
+        
+        .form-group {
+            margin-bottom: 10px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 5px;
+            color: #6a5642;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #e8d9c5;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        
+        .checkout-btn {
+            background-color: #25d366;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 12px 15px;
+            width: 100%;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 15px;
+            transition: all 0.3s ease;
+        }
+        
+        .checkout-btn:hover {
+            background-color: #128C7E;
+        }
+        
+        .checkout-btn i {
+            margin-right: 8px;
+        }
+        
+        .cart-note {
+            font-size: 12px;
+            color: #9a7f59;
+            margin-top: 10px;
+            text-align: center;
+            font-style: italic;
+        }
+        
+        /* Overlay quando o carrinho está aberto */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            display: none;
+        }
+        
+        .overlay.open {
+            display: block;
+        }
+        
+        /* Botão para selecionar variante */
+        .select-variant {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #e8d9c5;
+            border-radius: 4px;
+            background-color: white;
+            margin-bottom: 10px;
+            color: #6a5642;
+        }
+        
+        /* Ajustes para mobile */
+        @media (max-width: 768px) {
+            .cart-modal {
+                width: 85%;
+            }
+        }
     </style>
 </head>
 <body>
@@ -360,20 +674,26 @@
                     <ul>
                         <!-- Cada produto terá campos diferentes -->
                     </ul>
+                    <div class="product-actions">
+                        <div class="variant-selector"></div>
+                        <button class="add-to-cart-btn">
+                            <i class="fas fa-shopping-cart"></i> Adicionar ao carrinho
+                        </button>
+                    </div>
                 </div>
             </div>
         </template>
             
-            <div class="info-adicionais">
-                <h3>Informações Importantes</h3>
-                <ul>
-                    <li>Estaremos recebendo encomendas até o dia 14 de abril.</li>
-                    <li>Todos os ovos são artesanais, devendo ser conservado em ambiente refrigerado e consumidos em até 15 dias.</li>
-                    <li>As entregas são realizadas através dos Correios.</li>
-                    <li>Contatos para encomendas: Rua Alegria, 123 - Cidade Brasileira - Tel: (00) 00000-0000</li>
-                    <li>Formas de pagamento: Dinheiro, Pix e Cartão de Crédito</li>
-                </ul>
-            </div>
+        <div class="info-adicionais">
+            <h3>Informações Importantes</h3>
+            <ul>
+                <li>Estaremos recebendo encomendas até o dia 14 de abril.</li>
+                <li>Todos os ovos são artesanais, devendo ser conservado em ambiente refrigerado e consumidos em até 15 dias.</li>
+                <li>As entregas são realizadas através dos Correios.</li>
+                <li>Contatos para encomendas: Rua Alegria, 123 - Cidade Brasileira - Tel: (00) 00000-0000</li>
+                <li>Formas de pagamento: Dinheiro, Pix e Cartão de Crédito</li>
+                <li><strong>A retirada dos produtos é por conta do cliente.</strong></li>
+            </ul>
         </div>
         
         <div class="coelhos-wrapper">
@@ -390,133 +710,479 @@
             <div class="flores flor3"></div>
         </div>
     </div>
+    
+    <!-- Ícone flutuante do carrinho -->
+    <div class="cart-icon" id="cartIcon">
+        <i class="fas fa-shopping-cart"></i>
+        <div class="cart-count" id="cartCount">0</div>
+    </div>
+    
+    <!-- Modal do carrinho -->
+    <div class="cart-modal" id="cartModal">
+        <div class="cart-header">
+            <h3>Seu Carrinho</h3>
+            <button class="close-cart" id="closeCart">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="cart-items" id="cartItems">
+            <!-- Itens do carrinho serão inseridos aqui -->
+            <div class="empty-cart">
+                <i class="fas fa-shopping-cart"></i>
+                <p>Seu carrinho está vazio</p>
+                <p>Adicione itens para continuar</p>
+            </div>
+        </div>
+        <div class="cart-footer">
+            <div class="cart-total">
+                <span>Total:</span>
+                <span id="cartTotal">R$ 0,00</span>
+            </div>
+            
+            <div class="customer-info">
+                <h4>Informações para o pedido</h4>
+                <div class="form-group">
+                    <label for="customerName">Seu Nome</label>
+                    <input type="text" id="customerName" placeholder="Digite seu nome completo">
+                </div>
+            </div>
+            
+            <button class="checkout-btn" id="checkoutBtn">
+                <i class="fab fa-whatsapp"></i> Finalizar Pedido
+            </button>
+            
+            <div class="cart-note">
+                A retirada é por conta do cliente.
+            </div>
+        </div>
+    </div>
+    
+    <!-- Overlay para quando o carrinho estiver aberto -->
+    <div class="overlay" id="overlay"></div>
+    
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script>
-     // Configuração do Supabase
-const SUPABASE_URL = 'https://dbtkufhsgdnfxjcjypqa.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRidGt1ZmhzZ2RuZnhqY2p5cHFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIwMDU0NzksImV4cCI6MjA1NzU4MTQ3OX0.B9Ktlj5KAwd7-wD--uJG47zeEQwWTBc5sXoPacoUyCk';
+        // Configuração do Supabase
+        const SUPABASE_URL = 'https://dbtkufhsgdnfxjcjypqa.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRidGt1ZmhzZ2RuZnhqY2p5cHFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIwMDU0NzksImV4cCI6MjA1NzU4MTQ3OX0.B9Ktlj5KAwd7-wD--uJG47zeEQwWTBc5sXoPacoUyCk';
 
-const { createClient } = supabase;
-const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// Função para carregar os produtos do Supabase
-async function carregarProdutos() {
-    try {
-        const { data, error } = await supabaseClient
-            .from('produtos_pascoa')
-            .select('*')
-            .order('ordem', { ascending: true });
+        // Inicializar carrinho
+        let cart = [];
+        const whatsappNumber = "41992480604"; // Número de WhatsApp para enviar o pedido
 
-        if (error) {
-            console.error('Erro ao carregar produtos:', error);
-            return;
+        // Elementos DOM
+        const cartIcon = document.getElementById('cartIcon');
+        const cartModal = document.getElementById('cartModal');
+        const closeCart = document.getElementById('closeCart');
+        const overlay = document.getElementById('overlay');
+        const cartItems = document.getElementById('cartItems');
+        const cartCount = document.getElementById('cartCount');
+        const cartTotal = document.getElementById('cartTotal');
+        const checkoutBtn = document.getElementById('checkoutBtn');
+        const customerName = document.getElementById('customerName');
+        
+        // Função para abrir o carrinho
+        function openCart() {
+            cartModal.classList.add('open');
+            overlay.classList.add('open');
+            document.body.style.overflow = 'hidden'; // Impedir rolagem da página
         }
-
-        const container = document.getElementById('produtos-container');
-        container.innerHTML = '';
-
-        data.forEach(produto => {
-            const template = document.getElementById('produto-template');
-            const clone = document.importNode(template.content, true);
+        
+        // Função para fechar o carrinho
+        function closeCartModal() {
+            cartModal.classList.remove('open');
+            overlay.classList.remove('open');
+            document.body.style.overflow = 'auto'; // Permitir rolagem da página
+        }
+        
+        // Função para atualizar o contador do carrinho
+        function updateCartCount() {
+            const count = cart.reduce((total, item) => total + item.quantity, 0);
+            cartCount.textContent = count;
             
-            // Preencher o nome do produto
-            clone.querySelector('[data-field="nome"]').textContent = produto.nome;
+            // Mostrar/ocultar ícone do carrinho
+            if (count > 0) {
+                cartIcon.style.display = 'flex';
+            } else {
+                cartIcon.style.display = 'flex'; // Sempre visível para poder adicionar itens
+            }
+        }
+        
+        // Função para atualizar o total do carrinho
+        function updateCartTotal() {
+            const total = cart.reduce((sum, item) => {
+                // Extrair apenas os números do preço
+                const precoNumerico = parseFloat(item.price.replace(/[^\d,]/g, '').replace(',', '.'));
+                return sum + (precoNumerico * item.quantity);
+            }, 0);
             
-            // Preencher os detalhes do produto
-            const ul = clone.querySelector('ul');
+            cartTotal.textContent = `R$ ${total.toFixed(2).replace('.', ',')}`;
+            return total;
+        }
+        
+        // Função para renderizar itens do carrinho
+        function renderCartItems() {
+            if (cart.length === 0) {
+                cartItems.innerHTML = `
+                    <div class="empty-cart">
+                        <i class="fas fa-shopping-cart"></i>
+                        <p>Seu carrinho está vazio</p>
+                        <p>Adicione itens para continuar</p>
+                    </div>
+                `;
+                return;
+            }
             
-            const detalhes = typeof produto.detalhes === 'string' 
-                ? JSON.parse(produto.detalhes) 
-                : produto.detalhes;
+            cartItems.innerHTML = '';
             
-            Object.entries(detalhes).forEach(([chave, valor]) => {
-                if (chave === 'tamanhos' && Array.isArray(valor)) {
-                    const li = document.createElement('li');
-                    const categoria = document.createElement('span');
-                    categoria.className = 'categoria';
-                    categoria.textContent = 'TAMANHOS:';
+            cart.forEach((item, index) => {
+                const cartItem = document.createElement('div');
+                cartItem.className = 'cart-item';
+                
+                cartItem.innerHTML = `
+                    <div class="cart-item-info">
+                        <div class="cart-item-name">${item.name}</div>
+                        <div class="cart-item-variant">${item.variant || ''}</div>
+                        <div class="cart-item-price">${item.price}</div>
+                    </div>
+                    <div class="cart-item-controls">
+                        <div class="cart-item-quantity">
+                            <button class="quantity-btn decrease-quantity" data-index="${index}">-</button>
+                            <input type="text" class="quantity-input" value="${item.quantity}" readonly>
+                            <button class="quantity-btn increase-quantity" data-index="${index}">+</button>
+                        </div>
+                        <button class="remove-item" data-index="${index}">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+                
+                cartItems.appendChild(cartItem);
+            });
+            
+            // Adicionar event listeners para os botões
+            const decreaseButtons = document.querySelectorAll('.decrease-quantity');
+            const increaseButtons = document.querySelectorAll('.increase-quantity');
+            const removeButtons = document.querySelectorAll('.remove-item');
+            
+            decreaseButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const index = parseInt(button.dataset.index);
+                    if (cart[index].quantity > 1) {
+                        cart[index].quantity--;
+                        updateCart();
+                    }
+                });
+            });
+            
+            increaseButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const index = parseInt(button.dataset.index);
+                    cart[index].quantity++;
+                    updateCart();
+                });
+            });
+            
+            removeButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const index = parseInt(button.dataset.index);
+                    cart.splice(index, 1);
+                    updateCart();
+                });
+            });
+        }
+        
+        // Função para atualizar o carrinho
+        function updateCart() {
+            renderCartItems();
+            updateCartCount();
+            updateCartTotal();
+            
+            // Salvar no localStorage
+            localStorage.setItem('pascoa_cart', JSON.stringify(cart));
+        }
+        
+        // Função para adicionar um item ao carrinho
+        function addToCart(product) {
+            // Verificar se o produto já existe no carrinho com a mesma variante
+            const existingItemIndex = cart.findIndex(item => 
+                item.id === product.id && item.variant === product.variant
+            );
+            
+            if (existingItemIndex !== -1) {
+                // Incrementar quantidade se já existir
+                cart[existingItemIndex].quantity++;
+            } else {
+                // Adicionar novo item
+                cart.push({
+                    id: product.id,
+                    name: product.name,
+                    variant: product.variant,
+                    price: product.price,
+                    quantity: 1
+                });
+            }
+            
+            updateCart();
+            
+            // Mostrar feedback visual
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.textContent = 'Produto adicionado ao carrinho!';
+            notification.style.position = 'fixed';
+            notification.style.bottom = '80px';
+            notification.style.right = '20px';
+            notification.style.backgroundColor = '#9a7f59';
+            notification.style.color = 'white';
+            notification.style.padding = '10px 15px';
+            notification.style.borderRadius = '4px';
+            notification.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.2)';
+            notification.style.zIndex = '1000';
+            notification.style.opacity = '0';
+            notification.style.transition = 'opacity 0.3s ease';
+            
+            document.body.appendChild(notification);
+            
+            // Animar entrada e saída
+            setTimeout(() => {
+                notification.style.opacity = '1';
+                
+                setTimeout(() => {
+                    notification.style.opacity = '0';
                     
-                    const descricao = document.createElement('span');
-                    descricao.className = 'descricao';
+                    setTimeout(() => {
+                        document.body.removeChild(notification);
+                    }, 300);
+                }, 2000);
+            }, 10);
+            
+            // Abrir o carrinho depois de adicionar
+            openCart();
+        }
+        
+        // Função para finalizar a compra via WhatsApp
+        function checkout() {
+            const name = customerName.value.trim();
+            
+            if (!name) {
+                alert('Por favor, informe seu nome para continuar.');
+                return;
+            }
+            
+            if (cart.length === 0) {
+                alert('Seu carrinho está vazio. Adicione produtos para finalizar o pedido.');
+                return;
+            }
+            
+            // Construir a mensagem do pedido
+            let message = `*NOVO PEDIDO - CARDÁPIO DE PÁSCOA*\n\n`;
+            message += `*Nome:* ${name}\n\n`;
+            message += `*Itens do pedido:*\n`;
+            
+            cart.forEach(item => {
+                message += `• ${item.quantity}x ${item.name}`;
+                if (item.variant) {
+                    message += ` (${item.variant})`;
+                }
+                message += `\n`;
+            });
+            
+            message += `\n*Total:* R$ ${updateCartTotal().toFixed(2).replace('.', ',')}\n`;
+            message += `\n*Observação:* A retirada é por conta do cliente.`;
+            
+            // Codificar a mensagem para URL
+            const encodedMessage = encodeURIComponent(message);
+            
+            // Abrir WhatsApp com a mensagem
+            window.open(`https://wa.me/${whatsappNumber}?text=${encodedMessage}`, '_blank');
+            
+            // Limpar carrinho após enviar
+            cart = [];
+            updateCart();
+            closeCartModal();
+        }
+        
+        // Função para carregar os produtos do Supabase e adicionar botões de carrinho
+        async function carregarProdutos() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('produtos_pascoa')
+                    .select('*')
+                    .order('ordem', { ascending: true });
+
+                if (error) {
+                    console.error('Erro ao carregar produtos:', error);
+                    return;
+                }
+
+                const container = document.getElementById('produtos-container');
+                container.innerHTML = '';
+
+                data.forEach(produto => {
+                    const template = document.getElementById('produto-template');
+                    const clone = document.importNode(template.content, true);
                     
-                    valor.forEach((tamanho, index) => {
-                        const tamanhoText = document.createTextNode(`${tamanho.peso} - `);
-                        descricao.appendChild(tamanhoText);
+                    // Preencher o nome do produto
+                    clone.querySelector('[data-field="nome"]').textContent = produto.nome;
+                    
+                    // Preencher os detalhes do produto
+                    const ul = clone.querySelector('ul');
+                    
+                    const detalhes = typeof produto.detalhes === 'string' 
+                        ? JSON.parse(produto.detalhes) 
+                        : produto.detalhes;
+                    
+                    // Verificar se o produto tem tamanhos para criar o seletor de variantes
+                    const hasTamanhos = detalhes.tamanhos && Array.isArray(detalhes.tamanhos);
+                    const variantSelector = clone.querySelector('.variant-selector');
+                    
+                    if (hasTamanhos) {
+                        const select = document.createElement('select');
+                        select.className = 'select-variant';
                         
-                        const precoSpan = document.createElement('span');
-                        precoSpan.className = 'preco';
-                        precoSpan.textContent = `R$ ${tamanho.preco}`;
-                        descricao.appendChild(precoSpan);
+                        detalhes.tamanhos.forEach(tamanho => {
+                            const option = document.createElement('option');
+                            option.value = `${tamanho.peso} - R$ ${tamanho.preco}`;
+                            option.textContent = `${tamanho.peso} - R$ ${tamanho.preco}`;
+                            select.appendChild(option);
+                        });
                         
-                        if (index < valor.length - 1) {
-                            const br = document.createElement('br');
-                            descricao.appendChild(br);
+                        variantSelector.appendChild(select);
+                    } else {
+                        variantSelector.style.display = 'none';
+                    }
+                    
+                    // Configurar o botão de adicionar ao carrinho
+                    const addToCartBtn = clone.querySelector('.add-to-cart-btn');
+                    addToCartBtn.addEventListener('click', () => {
+                        let variant = '';
+                        let price = '';
+                        
+                        if (hasTamanhos) {
+                            const select = variantSelector.querySelector('select');
+                            variant = select.value;
+                            price = variant.split(' - ')[1];
+                        } else {
+                            // Se não houver tamanhos, verificar se há preço fixo ou não especificar
+                            const priceEl = ul.querySelector('.preco');
+                            price = priceEl ? priceEl.textContent : '';
+                        }
+                        
+                        addToCart({
+                            id: produto.id,
+                            name: produto.nome,
+                            variant: variant,
+                            price: price
+                        });
+                    });
+                    
+                    Object.entries(detalhes).forEach(([chave, valor]) => {
+                        if (chave === 'tamanhos' && Array.isArray(valor)) {
+                            const li = document.createElement('li');
+                            const categoria = document.createElement('span');
+                            categoria.className = 'categoria';
+                            categoria.textContent = 'TAMANHOS:';
+                            
+                            const descricao = document.createElement('span');
+                            descricao.className = 'descricao';
+                            
+                            valor.forEach((tamanho, index) => {
+                                const tamanhoText = document.createTextNode(`${tamanho.peso} - `);
+                                descricao.appendChild(tamanhoText);
+                                
+                                const precoSpan = document.createElement('span');
+                                precoSpan.className = 'preco';
+                                precoSpan.textContent = `R$ ${tamanho.preco}`;
+                                descricao.appendChild(precoSpan);
+                                
+                                if (index < valor.length - 1) {
+                                    const br = document.createElement('br');
+                                    descricao.appendChild(br);
+                                }
+                            });
+                            
+                            li.appendChild(categoria);
+                            li.appendChild(descricao);
+                            ul.appendChild(li);
+                        } else if (typeof valor === 'object' && valor !== null) {
+                            const li = document.createElement('li');
+                            
+                            const categoria = document.createElement('span');
+                            categoria.className = 'categoria';
+                            categoria.textContent = `${chave.toUpperCase()}:`;
+                            
+                            const descricao = document.createElement('span');
+                            descricao.className = 'descricao';
+                            descricao.textContent = valor.texto;
+                            
+                            li.appendChild(categoria);
+                            li.appendChild(descricao);
+                            ul.appendChild(li);
+                        } else {
+                            const li = document.createElement('li');
+                            
+                            // Verificar se a chave começa com texto_ ou é um nome específico
+                            if (chave.startsWith('texto_') || chave === chave.toLowerCase()) {
+                                const descricao = document.createElement('span');
+                                descricao.className = 'descricao';
+                                descricao.textContent = valor;
+                                
+                                li.appendChild(descricao);
+                            } else {
+                                // Caso seja uma chave específica como "ovo delícia - 250g" ou "kit confeiteiro"
+                                const categoria = document.createElement('span');
+                                categoria.className = 'categoria';
+                                categoria.textContent = `${chave.toUpperCase()}:`;
+                                
+                                const descricao = document.createElement('span');
+                                descricao.className = 'descricao';
+                                descricao.textContent = valor;
+                                
+                                li.appendChild(categoria);
+                                li.appendChild(descricao);
+                            }
+                            
+                            ul.appendChild(li);
                         }
                     });
                     
-                    li.appendChild(categoria);
-                    li.appendChild(descricao);
-                    ul.appendChild(li);
-                } else if (typeof valor === 'object' && valor !== null) {
-                    const li = document.createElement('li');
-                    
-                    const categoria = document.createElement('span');
-                    categoria.className = 'categoria';
-                    categoria.textContent = `${chave.toUpperCase()}:`;
-                    
-                    const descricao = document.createElement('span');
-                    descricao.className = 'descricao';
-                    descricao.textContent = valor.texto;
-                    
-                    li.appendChild(categoria);
-                    li.appendChild(descricao);
-                    ul.appendChild(li);
-                } else {
-                    const li = document.createElement('li');
-                    
-                    // Verificar se a chave começa com texto_ ou é um nome específico
-                    if (chave.startsWith('texto_') || chave === chave.toLowerCase()) {
-                        const descricao = document.createElement('span');
-                        descricao.className = 'descricao';
-                        descricao.textContent = valor;
-                        
-                        li.appendChild(descricao);
-                    } else {
-                        // Caso seja uma chave específica como "ovo delícia - 250g" ou "kit confeiteiro"
-                        const categoria = document.createElement('span');
-                        categoria.className = 'categoria';
-                        categoria.textContent = `${chave.toUpperCase()}:`;
-                        
-                        const descricao = document.createElement('span');
-                        descricao.className = 'descricao';
-                        descricao.textContent = valor;
-                        
-                        li.appendChild(categoria);
-                        li.appendChild(descricao);
-                    }
-                    
-                    ul.appendChild(li);
-                }
-            });
+                    container.appendChild(clone);
+                });
+            } catch (error) {
+                console.error('Erro:', error);
+                const container = document.getElementById('produtos-container');
+                container.innerHTML = `
+                    <div class="produto">
+                        <div class="info">
+                            <h3>Erro ao carregar produtos</h3>
+                            <p>Não foi possível carregar os produtos. Por favor, tente novamente mais tarde.</p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        // Event Listeners
+        cartIcon.addEventListener('click', openCart);
+        closeCart.addEventListener('click', closeCartModal);
+        overlay.addEventListener('click', closeCartModal);
+        checkoutBtn.addEventListener('click', checkout);
+        
+        // Inicializar a página
+        document.addEventListener('DOMContentLoaded', () => {
+            // Carregar carrinho do localStorage
+            const savedCart = localStorage.getItem('pascoa_cart');
+            if (savedCart) {
+                cart = JSON.parse(savedCart);
+                updateCart();
+            }
             
-            container.appendChild(clone);
+            // Carregar produtos
+            carregarProdutos();
         });
-    } catch (error) {
-        console.error('Erro:', error);
-        const container = document.getElementById('produtos-container');
-        container.innerHTML = `
-            <div class="produto">
-                <div class="info">
-                    <h3>Erro ao carregar produtos</h3>
-                    <p>Não foi possível carregar os produtos. Por favor, tente novamente mais tarde.</p>
-                </div>
-            </div>
-        `;
-    }
-}
-
-// Carregar produtos quando a página for carregada
-document.addEventListener('DOMContentLoaded', carregarProdutos);
     </script>
 </body>
 </html>
