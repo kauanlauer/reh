@@ -392,83 +392,131 @@
     </div>
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script>
-        // Configuração do Supabase - ajustar para usar supabase corretamente
+     // Configuração do Supabase
 const SUPABASE_URL = 'https://dbtkufhsgdnfxjcjypqa.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRidGt1ZmhzZ2RuZnhqY2p5cHFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIwMDU0NzksImV4cCI6MjA1NzU4MTQ3OX0.B9Ktlj5KAwd7-wD--uJG47zeEQwWTBc5sXoPacoUyCk';
 
 const { createClient } = supabase;
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-        // Função para carregar os produtos do Supabase
-        async function carregarProdutos() {
-            try {
-                const { data, error } = await supabaseClient
-    .from('produtos_pascoa')
-    .select('*')
-    .order('ordem', { ascending: true });
+// Função para carregar os produtos do Supabase
+async function carregarProdutos() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('produtos_pascoa')
+            .select('*')
+            .order('ordem', { ascending: true });
 
-                if (error) {
-                    console.error('Erro ao carregar produtos:', error);
-                    return;
-                }
+        if (error) {
+            console.error('Erro ao carregar produtos:', error);
+            return;
+        }
 
-                const container = document.getElementById('produtos-container');
-                container.innerHTML = '';
+        const container = document.getElementById('produtos-container');
+        container.innerHTML = '';
 
-                data.forEach(produto => {
-                    const template = document.getElementById('produto-template');
-                    const clone = document.importNode(template.content, true);
+        data.forEach(produto => {
+            const template = document.getElementById('produto-template');
+            const clone = document.importNode(template.content, true);
+            
+            // Preencher o nome do produto
+            clone.querySelector('[data-field="nome"]').textContent = produto.nome;
+            
+            // Preencher os detalhes do produto
+            const ul = clone.querySelector('ul');
+            
+            const detalhes = typeof produto.detalhes === 'string' 
+                ? JSON.parse(produto.detalhes) 
+                : produto.detalhes;
+            
+            Object.entries(detalhes).forEach(([chave, valor]) => {
+                if (chave === 'tamanhos' && Array.isArray(valor)) {
+                    const li = document.createElement('li');
+                    const categoria = document.createElement('span');
+                    categoria.className = 'categoria';
+                    categoria.textContent = 'TAMANHOS:';
                     
-                    // Preencher o nome do produto
-                    clone.querySelector('[data-field="nome"]').textContent = produto.nome;
+                    const descricao = document.createElement('span');
+                    descricao.className = 'descricao';
                     
-                    // Preencher os detalhes do produto
-                    const ul = clone.querySelector('ul');
-                    
-                    const detalhes = JSON.parse(produto.detalhes);
-                    
-                    Object.entries(detalhes).forEach(([chave, valor]) => {
-                        if (chave === 'tamanhos' && Array.isArray(valor)) {
-                            // O código existente para tamanhos já está correto
-                        } else if (typeof valor === 'object' && valor !== null) {
-                            // O código existente para objetos já está correto
-                        } else {
-                            const li = document.createElement('li');
-                            
-                            // Modificação aqui - verificamos se a chave começa com texto_ ou é texto normal
-                            if (chave.startsWith('texto_') || chave === chave.toLowerCase()) {
-                                const descricao = document.createElement('span');
-                                descricao.className = 'descricao';
-                                descricao.textContent = valor;
-                                
-                                li.appendChild(descricao);
-                            } else {
-                                // Caso seja uma chave específica como "ovo delícia - 250g" ou "kit confeiteiro"
-                                const categoria = document.createElement('span');
-                                categoria.className = 'categoria';
-                                categoria.textContent = `${chave.toUpperCase()}:`;
-                                
-                                const descricao = document.createElement('span');
-                                descricao.className = 'descricao';
-                                descricao.textContent = valor;
-                                
-                                li.appendChild(categoria);
-                                li.appendChild(descricao);
-                            }
-                            
-                            ul.appendChild(li);
+                    valor.forEach((tamanho, index) => {
+                        const tamanhoText = document.createTextNode(`${tamanho.peso} - `);
+                        descricao.appendChild(tamanhoText);
+                        
+                        const precoSpan = document.createElement('span');
+                        precoSpan.className = 'preco';
+                        precoSpan.textContent = `R$ ${tamanho.preco}`;
+                        descricao.appendChild(precoSpan);
+                        
+                        if (index < valor.length - 1) {
+                            const br = document.createElement('br');
+                            descricao.appendChild(br);
                         }
                     });
                     
-                    container.appendChild(clone);
-                });
-            } catch (error) {
-                console.error('Erro:', error);
-            }
-        }
+                    li.appendChild(categoria);
+                    li.appendChild(descricao);
+                    ul.appendChild(li);
+                } else if (typeof valor === 'object' && valor !== null) {
+                    const li = document.createElement('li');
+                    
+                    const categoria = document.createElement('span');
+                    categoria.className = 'categoria';
+                    categoria.textContent = `${chave.toUpperCase()}:`;
+                    
+                    const descricao = document.createElement('span');
+                    descricao.className = 'descricao';
+                    descricao.textContent = valor.texto;
+                    
+                    li.appendChild(categoria);
+                    li.appendChild(descricao);
+                    ul.appendChild(li);
+                } else {
+                    const li = document.createElement('li');
+                    
+                    // Verificar se a chave começa com texto_ ou é um nome específico
+                    if (chave.startsWith('texto_') || chave === chave.toLowerCase()) {
+                        const descricao = document.createElement('span');
+                        descricao.className = 'descricao';
+                        descricao.textContent = valor;
+                        
+                        li.appendChild(descricao);
+                    } else {
+                        // Caso seja uma chave específica como "ovo delícia - 250g" ou "kit confeiteiro"
+                        const categoria = document.createElement('span');
+                        categoria.className = 'categoria';
+                        categoria.textContent = `${chave.toUpperCase()}:`;
+                        
+                        const descricao = document.createElement('span');
+                        descricao.className = 'descricao';
+                        descricao.textContent = valor;
+                        
+                        li.appendChild(categoria);
+                        li.appendChild(descricao);
+                    }
+                    
+                    ul.appendChild(li);
+                }
+            });
+            
+            container.appendChild(clone);
+        });
+    } catch (error) {
+        console.error('Erro:', error);
+        const container = document.getElementById('produtos-container');
+        container.innerHTML = `
+            <div class="produto">
+                <div class="info">
+                    <h3>Erro ao carregar produtos</h3>
+                    <p>Não foi possível carregar os produtos. Por favor, tente novamente mais tarde.</p>
+                </div>
+            </div>
+        `;
+    }
+}
 
-        // Carregar produtos quando a página for carregada
-        document.addEventListener('DOMContentLoaded', carregarProdutos);
+// Carregar produtos quando a página for carregada
+document.addEventListener('DOMContentLoaded', carregarProdutos);
     </script>
 </body>
 </html>

@@ -383,199 +383,328 @@
 
     <script>
       // Configuração do Supabase
-      const SUPABASE_URL = "https://dbtkufhsgdnfxjcjypqa.supabase.co";
-      const SUPABASE_KEY =
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRidGt1ZmhzZ2RuZnhqY2p5cHFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIwMDU0NzksImV4cCI6MjA1NzU4MTQ3OX0.B9Ktlj5KAwd7-wD--uJG47zeEQwWTBc5sXoPacoUyCk";
-        const { createClient } = supabase;
-        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
+const SUPABASE_URL = "https://dbtkufhsgdnfxjcjypqa.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRidGt1ZmhzZ2RuZnhqY2p5cHFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIwMDU0NzksImV4cCI6MjA1NzU4MTQ3OX0.B9Ktlj5KAwd7-wD--uJG47zeEQwWTBc5sXoPacoUyCk";
+const { createClient } = supabase;
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-      // Estado global da aplicação
-      let editandoProduto = null;
+// Estado global da aplicação
+let editandoProduto = null;
 
-      // Elementos DOM
-      const produtoForm = document.getElementById("produtoForm");
-      const formTitle = document.getElementById("formTitle");
-      const produtoId = document.getElementById("produtoId");
-      const nome = document.getElementById("nome");
-      const ordem = document.getElementById("ordem");
-      const camposContainer = document.getElementById("camposContainer");
-      const adicionarCampoBtn = document.getElementById("adicionarCampo");
-      const salvarBtn = document.getElementById("salvarBtn");
-      const cancelarBtn = document.getElementById("cancelarBtn");
-      const produtosContainer = document.getElementById("produtosContainer");
-      const visualizarBtn = document.getElementById("visualizarBtn");
-      const loading = document.getElementById("loading");
-      const alertContainer = document.getElementById("alertContainer");
+// Elementos DOM
+const produtoForm = document.getElementById("produtoForm");
+const formTitle = document.getElementById("formTitle");
+const produtoId = document.getElementById("produtoId");
+const nome = document.getElementById("nome");
+const ordem = document.getElementById("ordem");
+const camposContainer = document.getElementById("camposContainer");
+const adicionarCampoBtn = document.getElementById("adicionarCampo");
+const salvarBtn = document.getElementById("salvarBtn");
+const cancelarBtn = document.getElementById("cancelarBtn");
+const produtosContainer = document.getElementById("produtosContainer");
+const visualizarBtn = document.getElementById("visualizarBtn");
+const loading = document.getElementById("loading");
+const alertContainer = document.getElementById("alertContainer");
 
-      // Templates
-      const campoTemplateTexto = document.getElementById(
-        "campo-template-texto"
+// Templates
+const campoTemplateTexto = document.getElementById("campo-template-texto");
+const campoTemplateCategoria = document.getElementById("campo-template-categoria");
+const campoTemplateTamanhos = document.getElementById("campo-template-tamanhos");
+
+// Função para mostrar loading
+function mostrarLoading() {
+  loading.style.display = "flex";
+}
+
+// Função para esconder loading
+function esconderLoading() {
+  loading.style.display = "none";
+}
+
+// Função para mostrar alertas
+function mostrarAlerta(mensagem, tipo = "success") {
+  const alert = document.createElement("div");
+  alert.className = `alert alert-${tipo} alert-dismissible fade show`;
+  alert.innerHTML = `
+    ${mensagem}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+  `;
+
+  alertContainer.appendChild(alert);
+
+  // Remover o alerta após 5 segundos
+  setTimeout(() => {
+    alert.classList.remove("show");
+    setTimeout(() => {
+      alertContainer.removeChild(alert);
+    }, 150);
+  }, 5000);
+}
+
+// Carregar produtos do Supabase
+async function carregarProdutos() {
+  try {
+    produtosContainer.innerHTML = `
+      <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Carregando...</span>
+        </div>
+      </div>
+    `;
+
+    const { data, error } = await supabaseClient
+      .from("produtos_pascoa")
+      .select("*")
+      .order("ordem", { ascending: true });
+
+    if (error) {
+      console.error("Erro ao carregar produtos:", error);
+      produtosContainer.innerHTML = `
+        <div class="alert alert-danger">
+          Erro ao carregar produtos. Tente novamente.
+        </div>
+      `;
+      return;
+    }
+
+    if (data.length === 0) {
+      produtosContainer.innerHTML = `
+        <div class="text-center py-5">
+          <p class="text-muted">Nenhum produto cadastrado ainda.</p>
+        </div>
+      `;
+      return;
+    }
+
+    produtosContainer.innerHTML = "";
+
+    data.forEach((produto) => {
+      const card = document.createElement("div");
+      card.className = "card mb-3";
+
+      const detalhes =
+        typeof produto.detalhes === "string"
+          ? JSON.parse(produto.detalhes)
+          : produto.detalhes;
+      const detalhesHTML = formatarDetalhesHTML(detalhes);
+
+      card.innerHTML = `
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h6 class="mb-0">${produto.nome}</h6>
+          <span class="badge bg-secondary">Ordem: ${produto.ordem}</span>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            ${detalhesHTML}
+          </div>
+          <div class="d-flex justify-content-end">
+            <button class="btn btn-sm btn-warning me-2 editar-btn" data-id="${produto.id}">Editar</button>
+            <button class="btn btn-sm btn-danger excluir-btn" data-id="${produto.id}">Excluir</button>
+          </div>
+        </div>
+      `;
+
+      produtosContainer.appendChild(card);
+
+      // Adicionar event listeners
+      card
+        .querySelector(".editar-btn")
+        .addEventListener("click", () => editarProduto(produto));
+      card
+        .querySelector(".excluir-btn")
+        .addEventListener("click", () => excluirProduto(produto.id));
+    });
+  } catch (error) {
+    console.error("Erro:", error);
+    produtosContainer.innerHTML = `
+      <div class="alert alert-danger">
+        Erro ao carregar produtos. Tente novamente.
+      </div>
+    `;
+  }
+}
+
+// Formatar detalhes para HTML
+function formatarDetalhesHTML(detalhes) {
+  let html = '<ul class="list-group list-group-flush">';
+
+  Object.entries(detalhes).forEach(([chave, valor]) => {
+    if (chave === "tamanhos" && Array.isArray(valor)) {
+      html += `<li class="list-group-item"><strong>TAMANHOS:</strong><br>`;
+
+      valor.forEach((tamanho) => {
+        html += `${tamanho.peso} - R$ ${tamanho.preco}<br>`;
+      });
+
+      html += `</li>`;
+    } else if (typeof valor === "object" && valor !== null) {
+      html += `<li class="list-group-item"><strong>${chave.toUpperCase()}:</strong> ${
+        valor.texto
+      }</li>`;
+    } else {
+      html += `<li class="list-group-item">${valor}</li>`;
+    }
+  });
+
+  html += "</ul>";
+  return html;
+}
+
+// Adicionar campo ao formulário
+function adicionarCampo(tipo = "texto") {
+  let template;
+
+  if (tipo === "categoria") {
+    template = campoTemplateCategoria.content.cloneNode(true);
+  } else if (tipo === "tamanhos") {
+    template = campoTemplateTamanhos.content.cloneNode(true);
+
+    // Adicionar event listener para o botão de adicionar tamanho
+    template
+      .querySelector(".adicionar-tamanho")
+      .addEventListener("click", adicionarTamanho);
+    template
+      .querySelector(".remover-tamanho")
+      .addEventListener("click", removerTamanho);
+  } else {
+    template = campoTemplateTexto.content.cloneNode(true);
+  }
+
+  // Adicionar event listener para o select de tipo
+  template
+    .querySelector(".campo-tipo")
+    .addEventListener("change", function () {
+      const campoItem = this.closest(".campo-item");
+      const novoTipo = this.value;
+      const index = Array.from(campoItem.parentNode.children).indexOf(
+        campoItem
       );
-      const campoTemplateCategoria = document.getElementById(
-        "campo-template-categoria"
-      );
-      const campoTemplateTamanhos = document.getElementById(
-        "campo-template-tamanhos"
-      );
 
-      // Função para mostrar loading
-      function mostrarLoading() {
-        loading.style.display = "flex";
+      // Remover o campo atual
+      campoItem.remove();
+
+      // Adicionar um novo campo do tipo selecionado na mesma posição
+      const novoTemplate = adicionarCampo(novoTipo);
+
+      if (index > 0 && index < camposContainer.children.length) {
+        camposContainer.insertBefore(
+          novoTemplate,
+          camposContainer.children[index]
+        );
+      } else {
+        camposContainer.appendChild(novoTemplate);
       }
+    });
 
-      // Função para esconder loading
-      function esconderLoading() {
-        loading.style.display = "none";
-      }
+  // Adicionar event listener para o botão de remover campo
+  template
+    .querySelector(".remover-campo")
+    .addEventListener("click", function () {
+      this.closest(".campo-item").remove();
+    });
 
-      // Função para mostrar alertas
-      function mostrarAlerta(mensagem, tipo = "success") {
-        const alert = document.createElement("div");
-        alert.className = `alert alert-${tipo} alert-dismissible fade show`;
-        alert.innerHTML = `
-                ${mensagem}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
-            `;
+  // Adicionar ao container
+  camposContainer.appendChild(template);
 
-        alertContainer.appendChild(alert);
+  return template;
+}
 
-        // Remover o alerta após 5 segundos
-        setTimeout(() => {
-          alert.classList.remove("show");
-          setTimeout(() => {
-            alertContainer.removeChild(alert);
-          }, 150);
-        }, 5000);
-      }
+// Adicionar tamanho
+function adicionarTamanho(e) {
+  const tamanhoItem = e.target
+    .closest(".campo-content")
+    .querySelector(".tamanho-template")
+    .content.cloneNode(true);
+  const tamanhoContainer = e.target
+    .closest(".campo-content")
+    .querySelector(".tamanhos-container");
 
-      // Carregar produtos do Supabase
-      async function carregarProdutos() {
-        try {
-          produtosContainer.innerHTML = `
-                    <div class="text-center py-5">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Carregando...</span>
-                        </div>
-                    </div>
-                `;
+  // Adicionar event listener para o botão de remover tamanho
+  tamanhoItem
+    .querySelector(".remover-tamanho")
+    .addEventListener("click", removerTamanho);
 
-                const { data, error } = await supabaseClient
-                .from('produtos_pascoa')
-                .select('*')
-                .order('ordem', { ascending: true });
+  tamanhoContainer.appendChild(tamanhoItem);
+}
 
-          if (error) {
-            console.error("Erro ao carregar produtos:", error);
-            produtosContainer.innerHTML = `
-                        <div class="alert alert-danger">
-                            Erro ao carregar produtos. Tente novamente.
-                        </div>
-                    `;
-            return;
-          }
+// Remover tamanho
+function removerTamanho(e) {
+  const tamanhoItem = e.target.closest(".tamanho-item");
+  const tamanhoContainer = tamanhoItem.parentNode;
 
-          if (data.length === 0) {
-            produtosContainer.innerHTML = `
-                        <div class="text-center py-5">
-                            <p class="text-muted">Nenhum produto cadastrado ainda.</p>
-                        </div>
-                    `;
-            return;
-          }
+  // Verificar se é o último tamanho
+  if (tamanhoContainer.children.length > 1) {
+    tamanhoItem.remove();
+  } else {
+    mostrarAlerta("É necessário pelo menos um tamanho!", "warning");
+  }
+}
 
-          produtosContainer.innerHTML = "";
+// Limpar formulário
+function limparFormulario() {
+  produtoForm.reset();
+  produtoId.value = "";
+  camposContainer.innerHTML = "";
+  adicionarCampo("texto");
+  editandoProduto = null;
+  formTitle.textContent = "Adicionar Novo Produto";
+  salvarBtn.textContent = "Salvar Produto";
+}
 
-          data.forEach((produto) => {
-            const card = document.createElement("div");
-            card.className = "card mb-3";
+// Editar produto
+async function editarProduto(produto) {
+  mostrarLoading();
 
-            const detalhes =
-              typeof produto.detalhes === "string"
-                ? JSON.parse(produto.detalhes)
-                : produto.detalhes;
-            const detalhesHTML = formatarDetalhesHTML(detalhes);
+  try {
+    editandoProduto = produto;
 
-            card.innerHTML = `
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h6 class="mb-0">${produto.nome}</h6>
-                            <span class="badge bg-secondary">Ordem: ${produto.ordem}</span>
-                        </div>
-                        <div class="card-body">
-                            <div class="mb-3">
-                                ${detalhesHTML}
-                            </div>
-                            <div class="d-flex justify-content-end">
-                                <button class="btn btn-sm btn-warning me-2 editar-btn" data-id="${produto.id}">Editar</button>
-                                <button class="btn btn-sm btn-danger excluir-btn" data-id="${produto.id}">Excluir</button>
-                            </div>
-                        </div>
-                    `;
+    // Preencher formulário
+    produtoId.value = produto.id;
+    nome.value = produto.nome;
+    ordem.value = produto.ordem;
 
-            produtosContainer.appendChild(card);
+    // Limpar campos existentes
+    camposContainer.innerHTML = "";
 
-            // Adicionar event listeners
-            card
-              .querySelector(".editar-btn")
-              .addEventListener("click", () => editarProduto(produto));
-            card
-              .querySelector(".excluir-btn")
-              .addEventListener("click", () => excluirProduto(produto.id));
-          });
-        } catch (error) {
-          console.error("Erro:", error);
-          produtosContainer.innerHTML = `
-                    <div class="alert alert-danger">
-                        Erro ao carregar produtos. Tente novamente.
-                    </div>
-                `;
-        }
-      }
+    // Preencher campos de detalhes
+    const detalhes =
+      typeof produto.detalhes === "string"
+        ? JSON.parse(produto.detalhes)
+        : produto.detalhes;
 
-      // Formatar detalhes para HTML
-      function formatarDetalhesHTML(detalhes) {
-        let html = '<ul class="list-group list-group-flush">';
+    Object.entries(detalhes).forEach(([chave, valor]) => {
+      if (chave === "tamanhos" && Array.isArray(valor)) {
+        const template = campoTemplateTamanhos.content.cloneNode(true);
 
-        Object.entries(detalhes).forEach(([chave, valor]) => {
-          if (chave === "tamanhos" && Array.isArray(valor)) {
-            html += `<li class="list-group-item"><strong>TAMANHOS:</strong><br>`;
+        // Adicionar event listener para o botão de adicionar tamanho
+        template
+          .querySelector(".adicionar-tamanho")
+          .addEventListener("click", adicionarTamanho);
 
-            valor.forEach((tamanho) => {
-              html += `${tamanho.peso} - R$ ${tamanho.preco}<br>`;
-            });
+        // Remover o tamanho padrão
+        const tamanhoContainer = template.querySelector(
+          ".tamanhos-container"
+        );
+        tamanhoContainer.innerHTML = "";
 
-            html += `</li>`;
-          } else if (typeof valor === "object" && valor !== null) {
-            html += `<li class="list-group-item"><strong>${chave.toUpperCase()}:</strong> ${
-              valor.texto
-            }</li>`;
-          } else {
-            html += `<li class="list-group-item">${valor}</li>`;
-          }
-        });
+        // Adicionar os tamanhos do produto
+        valor.forEach((tamanho) => {
+          const tamanhoTemplate = template
+            .querySelector(".tamanho-template")
+            .content.cloneNode(true);
 
-        html += "</ul>";
-        return html;
-      }
+          tamanhoTemplate.querySelector(".tamanho-peso").value =
+            tamanho.peso;
+          tamanhoTemplate.querySelector(".tamanho-preco").value =
+            tamanho.preco;
 
-      // Adicionar campo ao formulário
-      function adicionarCampo(tipo = "texto") {
-        let template;
-
-        if (tipo === "categoria") {
-          template = campoTemplateCategoria.content.cloneNode(true);
-        } else if (tipo === "tamanhos") {
-          template = campoTemplateTamanhos.content.cloneNode(true);
-
-          // Adicionar event listener para o botão de adicionar tamanho
-          template
-            .querySelector(".adicionar-tamanho")
-            .addEventListener("click", adicionarTamanho);
-          template
+          // Adicionar event listener para o botão de remover tamanho
+          tamanhoTemplate
             .querySelector(".remover-tamanho")
             .addEventListener("click", removerTamanho);
-        } else {
-          template = campoTemplateTexto.content.cloneNode(true);
-        }
+
+          tamanhoContainer.appendChild(tamanhoTemplate);
+        });
 
         // Adicionar event listener para o select de tipo
         template
@@ -583,9 +712,9 @@
           .addEventListener("change", function () {
             const campoItem = this.closest(".campo-item");
             const novoTipo = this.value;
-            const index = Array.from(campoItem.parentNode.children).indexOf(
-              campoItem
-            );
+            const index = Array.from(
+              campoItem.parentNode.children
+            ).indexOf(campoItem);
 
             // Remover o campo atual
             campoItem.remove();
@@ -610,428 +739,292 @@
             this.closest(".campo-item").remove();
           });
 
-        // Adicionar ao container
         camposContainer.appendChild(template);
+      } else if (typeof valor === "object" && valor !== null) {
+        const template = campoTemplateCategoria.content.cloneNode(true);
 
-        return template;
-      }
+        template.querySelector(".campo-categoria-nome").value = chave;
+        template.querySelector(".campo-categoria-descricao").value =
+          valor.texto;
 
-      // Adicionar tamanho
-      function adicionarTamanho(e) {
-        const tamanhoItem = e.target
-          .closest(".campo-content")
-          .querySelector(".tamanho-template")
-          .content.cloneNode(true);
-        const tamanhoContainer = e.target
-          .closest(".campo-content")
-          .querySelector(".tamanhos-container");
+        // Adicionar event listener para o select de tipo
+        template
+          .querySelector(".campo-tipo")
+          .addEventListener("change", function () {
+            const campoItem = this.closest(".campo-item");
+            const novoTipo = this.value;
+            const index = Array.from(
+              campoItem.parentNode.children
+            ).indexOf(campoItem);
 
-        // Adicionar event listener para o botão de remover tamanho
-        tamanhoItem
-          .querySelector(".remover-tamanho")
-          .addEventListener("click", removerTamanho);
+            // Remover o campo atual
+            campoItem.remove();
 
-        tamanhoContainer.appendChild(tamanhoItem);
-      }
+            // Adicionar um novo campo do tipo selecionado na mesma posição
+            const novoTemplate = adicionarCampo(novoTipo);
 
-      // Remover tamanho
-      function removerTamanho(e) {
-        const tamanhoItem = e.target.closest(".tamanho-item");
-        const tamanhoContainer = tamanhoItem.parentNode;
-
-        // Verificar se é o último tamanho
-        if (tamanhoContainer.children.length > 1) {
-          tamanhoItem.remove();
-        } else {
-          mostrarAlerta("É necessário pelo menos um tamanho!", "warning");
-        }
-      }
-
-      // Limpar formulário
-      function limparFormulario() {
-        produtoForm.reset();
-        produtoId.value = "";
-        camposContainer.innerHTML = "";
-        adicionarCampo("texto");
-        editandoProduto = null;
-        formTitle.textContent = "Adicionar Novo Produto";
-        salvarBtn.textContent = "Salvar Produto";
-      }
-
-      // Editar produto
-      async function editarProduto(produto) {
-        mostrarLoading();
-
-        try {
-          editandoProduto = produto;
-
-          // Preencher formulário
-          produtoId.value = produto.id;
-          nome.value = produto.nome;
-          ordem.value = produto.ordem;
-
-          // Limpar campos existentes
-          camposContainer.innerHTML = "";
-
-          // Preencher campos de detalhes
-          const detalhes =
-            typeof produto.detalhes === "string"
-              ? JSON.parse(produto.detalhes)
-              : produto.detalhes;
-
-          Object.entries(detalhes).forEach(([chave, valor]) => {
-            if (chave === "tamanhos" && Array.isArray(valor)) {
-              const template = campoTemplateTamanhos.content.cloneNode(true);
-
-              // Adicionar event listener para o botão de adicionar tamanho
-              template
-                .querySelector(".adicionar-tamanho")
-                .addEventListener("click", adicionarTamanho);
-
-              // Remover o tamanho padrão
-              const tamanhoContainer = template.querySelector(
-                ".tamanhos-container"
+            if (index > 0 && index < camposContainer.children.length) {
+              camposContainer.insertBefore(
+                novoTemplate,
+                camposContainer.children[index]
               );
-              tamanhoContainer.innerHTML = "";
-
-              // Adicionar os tamanhos do produto
-              valor.forEach((tamanho) => {
-                const tamanhoTemplate = template
-                  .querySelector(".tamanho-template")
-                  .content.cloneNode(true);
-
-                tamanhoTemplate.querySelector(".tamanho-peso").value =
-                  tamanho.peso;
-                tamanhoTemplate.querySelector(".tamanho-preco").value =
-                  tamanho.preco;
-
-                // Adicionar event listener para o botão de remover tamanho
-                tamanhoTemplate
-                  .querySelector(".remover-tamanho")
-                  .addEventListener("click", removerTamanho);
-
-                tamanhoContainer.appendChild(tamanhoTemplate);
-              });
-
-              // Adicionar event listener para o select de tipo
-              template
-                .querySelector(".campo-tipo")
-                .addEventListener("change", function () {
-                  const campoItem = this.closest(".campo-item");
-                  const novoTipo = this.value;
-                  const index = Array.from(
-                    campoItem.parentNode.children
-                  ).indexOf(campoItem);
-
-                  // Remover o campo atual
-                  campoItem.remove();
-
-                  // Adicionar um novo campo do tipo selecionado na mesma posição
-                  const novoTemplate = adicionarCampo(novoTipo);
-
-                  if (index > 0 && index < camposContainer.children.length) {
-                    camposContainer.insertBefore(
-                      novoTemplate,
-                      camposContainer.children[index]
-                    );
-                  } else {
-                    camposContainer.appendChild(novoTemplate);
-                  }
-                });
-
-              // Adicionar event listener para o botão de remover campo
-              template
-                .querySelector(".remover-campo")
-                .addEventListener("click", function () {
-                  this.closest(".campo-item").remove();
-                });
-
-              camposContainer.appendChild(template);
-            } else if (typeof valor === "object" && valor !== null) {
-              const template = campoTemplateCategoria.content.cloneNode(true);
-
-              template.querySelector(".campo-categoria-nome").value = chave;
-              template.querySelector(".campo-categoria-descricao").value =
-                valor.texto;
-
-              // Adicionar event listener para o select de tipo
-              template
-                .querySelector(".campo-tipo")
-                .addEventListener("change", function () {
-                  const campoItem = this.closest(".campo-item");
-                  const novoTipo = this.value;
-                  const index = Array.from(
-                    campoItem.parentNode.children
-                  ).indexOf(campoItem);
-
-                  // Remover o campo atual
-                  campoItem.remove();
-
-                  // Adicionar um novo campo do tipo selecionado na mesma posição
-                  const novoTemplate = adicionarCampo(novoTipo);
-
-                  if (index > 0 && index < camposContainer.children.length) {
-                    camposContainer.insertBefore(
-                      novoTemplate,
-                      camposContainer.children[index]
-                    );
-                  } else {
-                    camposContainer.appendChild(novoTemplate);
-                  }
-                });
-
-              // Adicionar event listener para o botão de remover campo
-              template
-                .querySelector(".remover-campo")
-                .addEventListener("click", function () {
-                  this.closest(".campo-item").remove();
-                });
-
-              camposContainer.appendChild(template);
             } else {
-              const template = campoTemplateTexto.content.cloneNode(true);
-
-              template.querySelector(".campo-texto").value = valor;
-
-              // Adicionar event listener para o select de tipo
-              template
-                .querySelector(".campo-tipo")
-                .addEventListener("change", function () {
-                  const campoItem = this.closest(".campo-item");
-                  const novoTipo = this.value;
-                  const index = Array.from(
-                    campoItem.parentNode.children
-                  ).indexOf(campoItem);
-
-                  // Remover o campo atual
-                  campoItem.remove();
-
-                  // Adicionar um novo campo do tipo selecionado na mesma posição
-                  const novoTemplate = adicionarCampo(novoTipo);
-
-                  if (index > 0 && index < camposContainer.children.length) {
-                    camposContainer.insertBefore(
-                      novoTemplate,
-                      camposContainer.children[index]
-                    );
-                  } else {
-                    camposContainer.appendChild(novoTemplate);
-                  }
-                });
-
-              // Adicionar event listener para o botão de remover campo
-              template
-                .querySelector(".remover-campo")
-                .addEventListener("click", function () {
-                  this.closest(".campo-item").remove();
-                });
-
-              camposContainer.appendChild(template);
+              camposContainer.appendChild(novoTemplate);
             }
           });
 
-          // Atualizar título e botão
-          formTitle.textContent = "Editar Produto";
-          salvarBtn.textContent = "Atualizar Produto";
+        // Adicionar event listener para o botão de remover campo
+        template
+          .querySelector(".remover-campo")
+          .addEventListener("click", function () {
+            this.closest(".campo-item").remove();
+          });
 
-          // Rolar até o formulário
-          window.scrollTo({ top: 0, behavior: "smooth" });
-        } catch (error) {
-          console.error("Erro ao editar produto:", error);
-          mostrarAlerta("Erro ao editar produto. Tente novamente.", "danger");
-        } finally {
-          esconderLoading();
-        }
-      }
+        camposContainer.appendChild(template);
+      } else {
+        const template = campoTemplateTexto.content.cloneNode(true);
 
-      // Excluir produto
-      async function excluirProduto(id) {
-        if (!confirm("Tem certeza que deseja excluir este produto?")) {
-          return;
-        }
+        template.querySelector(".campo-texto").value = valor;
 
-        mostrarLoading();
+        // Adicionar event listener para o select de tipo
+        template
+          .querySelector(".campo-tipo")
+          .addEventListener("change", function () {
+            const campoItem = this.closest(".campo-item");
+            const novoTipo = this.value;
+            const index = Array.from(
+              campoItem.parentNode.children
+            ).indexOf(campoItem);
 
-        try {
-          const { error } = await supabase
-            .from("produtos_pascoa")
-            .delete()
-            .eq("id", id);
+            // Remover o campo atual
+            campoItem.remove();
 
-          if (error) {
-            console.error("Erro ao excluir produto:", error);
-            mostrarAlerta(
-              "Erro ao excluir produto. Tente novamente.",
-              "danger"
-            );
-            return;
-          }
+            // Adicionar um novo campo do tipo selecionado na mesma posição
+            const novoTemplate = adicionarCampo(novoTipo);
 
-          mostrarAlerta("Produto excluído com sucesso!");
-
-          // Recarregar produtos
-          carregarProdutos();
-        } catch (error) {
-          console.error("Erro:", error);
-          mostrarAlerta("Erro ao excluir produto. Tente novamente.", "danger");
-        } finally {
-          esconderLoading();
-        }
-      }
-
-      // Salvar produto
-      async function salvarProduto(e) {
-        e.preventDefault();
-
-        mostrarLoading();
-
-        try {
-          // Obter detalhes dos campos
-          const detalhes = {};
-
-          // Iterar sobre os campos
-          const camposItems = camposContainer.querySelectorAll(".campo-item");
-
-          for (const campo of camposItems) {
-            const tipo = campo.querySelector(".campo-tipo").value;
-
-            if (tipo === "texto") {
-              const texto = campo.querySelector(".campo-texto").value.trim();
-
-              if (texto) {
-                // Usar um nome padrão para textos simples
-                const chaveName = `texto_${
-                  Object.keys(detalhes).filter((k) => k.startsWith("texto_"))
-                    .length + 1
-                }`;
-                detalhes[chaveName] = texto;
-              }
-            } else if (tipo === "categoria") {
-              const categoriaNome = campo
-                .querySelector(".campo-categoria-nome")
-                .value.trim();
-              const categoriaDescricao = campo
-                .querySelector(".campo-categoria-descricao")
-                .value.trim();
-
-              if (categoriaNome && categoriaDescricao) {
-                detalhes[categoriaNome.toLowerCase()] = {
-                  texto: categoriaDescricao,
-                };
-              }
-            } else if (tipo === "tamanhos") {
-              const tamanhoItems = campo.querySelectorAll(".tamanho-item");
-              const tamanhos = [];
-
-              for (const tamanhoItem of tamanhoItems) {
-                const peso = tamanhoItem
-                  .querySelector(".tamanho-peso")
-                  .value.trim();
-                const preco = tamanhoItem
-                  .querySelector(".tamanho-preco")
-                  .value.trim();
-
-                if (peso && preco) {
-                  tamanhos.push({ peso, preco });
-                }
-              }
-
-              if (tamanhos.length > 0) {
-                detalhes["tamanhos"] = tamanhos;
-              }
+            if (index > 0 && index < camposContainer.children.length) {
+              camposContainer.insertBefore(
+                novoTemplate,
+                camposContainer.children[index]
+              );
+            } else {
+              camposContainer.appendChild(novoTemplate);
             }
-          }
+          });
 
-          // Verificar se há detalhes
-          if (Object.keys(detalhes).length === 0) {
-            mostrarAlerta(
-              "Adicione pelo menos um campo de detalhes!",
-              "warning"
-            );
-            esconderLoading();
-            return;
-          }
+        // Adicionar event listener para o botão de remover campo
+        template
+          .querySelector(".remover-campo")
+          .addEventListener("click", function () {
+            this.closest(".campo-item").remove();
+          });
 
-          // Dados do produto
-          const produtoData = {
-            nome: nome.value.trim(),
-            ordem: parseInt(ordem.value),
-            detalhes: JSON.stringify(detalhes),
+        camposContainer.appendChild(template);
+      }
+    });
+
+    // Atualizar título e botão
+    formTitle.textContent = "Editar Produto";
+    salvarBtn.textContent = "Atualizar Produto";
+
+    // Rolar até o formulário
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  } catch (error) {
+    console.error("Erro ao editar produto:", error);
+    mostrarAlerta("Erro ao editar produto. Tente novamente.", "danger");
+  } finally {
+    esconderLoading();
+  }
+}
+
+// Excluir produto
+async function excluirProduto(id) {
+  if (!confirm("Tem certeza que deseja excluir este produto?")) {
+    return;
+  }
+
+  mostrarLoading();
+
+  try {
+    const { error } = await supabaseClient
+      .from("produtos_pascoa")
+      .delete()
+      .eq("id", id);
+
+    if (error) {
+      console.error("Erro ao excluir produto:", error);
+      mostrarAlerta(
+        "Erro ao excluir produto. Tente novamente.",
+        "danger"
+      );
+      return;
+    }
+
+    mostrarAlerta("Produto excluído com sucesso!");
+
+    // Recarregar produtos
+    carregarProdutos();
+  } catch (error) {
+    console.error("Erro:", error);
+    mostrarAlerta("Erro ao excluir produto. Tente novamente.", "danger");
+  } finally {
+    esconderLoading();
+  }
+}
+
+// Salvar produto
+async function salvarProduto(e) {
+  e.preventDefault();
+
+  mostrarLoading();
+
+  try {
+    // Obter detalhes dos campos
+    const detalhes = {};
+
+    // Iterar sobre os campos
+    const camposItems = camposContainer.querySelectorAll(".campo-item");
+
+    for (const campo of camposItems) {
+      const tipo = campo.querySelector(".campo-tipo").value;
+
+      if (tipo === "texto") {
+        const texto = campo.querySelector(".campo-texto").value.trim();
+
+        if (texto) {
+          // Usar um nome padrão para textos simples
+          const chaveName = `texto_${
+            Object.keys(detalhes).filter((k) => k.startsWith("texto_"))
+              .length + 1
+          }`;
+          detalhes[chaveName] = texto;
+        }
+      } else if (tipo === "categoria") {
+        const categoriaNome = campo
+          .querySelector(".campo-categoria-nome")
+          .value.trim();
+        const categoriaDescricao = campo
+          .querySelector(".campo-categoria-descricao")
+          .value.trim();
+
+        if (categoriaNome && categoriaDescricao) {
+          detalhes[categoriaNome.toLowerCase()] = {
+            texto: categoriaDescricao,
           };
+        }
+      } else if (tipo === "tamanhos") {
+        const tamanhoItems = campo.querySelectorAll(".tamanho-item");
+        const tamanhos = [];
 
-          let resultado;
+        for (const tamanhoItem of tamanhoItems) {
+          const peso = tamanhoItem
+            .querySelector(".tamanho-peso")
+            .value.trim();
+          const preco = tamanhoItem
+            .querySelector(".tamanho-preco")
+            .value.trim();
 
-          // Verificar se é uma edição ou adição
-          if (produtoId.value) {
-            // Editar produto existente
-            resultado = await supabase
-              .from("produtos_pascoa")
-              .update(produtoData)
-              .eq("id", produtoId.value);
-
-            if (resultado.error) {
-              console.error("Erro ao atualizar produto:", resultado.error);
-              mostrarAlerta(
-                "Erro ao atualizar produto. Tente novamente.",
-                "danger"
-              );
-              return;
-            }
-
-            mostrarAlerta("Produto atualizado com sucesso!");
-          } else {
-            // Adicionar novo produto
-            resultado = await supabase
-              .from("produtos_pascoa")
-              .insert(produtoData);
-
-            if (resultado.error) {
-              console.error("Erro ao adicionar produto:", resultado.error);
-              mostrarAlerta(
-                "Erro ao adicionar produto. Tente novamente.",
-                "danger"
-              );
-              return;
-            }
-
-            mostrarAlerta("Produto adicionado com sucesso!");
+          if (peso && preco) {
+            tamanhos.push({ peso, preco });
           }
+        }
 
-          // Limpar formulário e recarregar produtos
-          limparFormulario();
-          carregarProdutos();
-        } catch (error) {
-          console.error("Erro:", error);
-          mostrarAlerta("Erro ao salvar produto. Tente novamente.", "danger");
-        } finally {
-          esconderLoading();
+        if (tamanhos.length > 0) {
+          detalhes["tamanhos"] = tamanhos;
         }
       }
+    }
 
-      // Event Listeners
-      document.addEventListener("DOMContentLoaded", () => {
-        // Carregar produtos
-        carregarProdutos();
+    // Verificar se há detalhes
+    if (Object.keys(detalhes).length === 0) {
+      mostrarAlerta(
+        "Adicione pelo menos um campo de detalhes!",
+        "warning"
+      );
+      esconderLoading();
+      return;
+    }
 
-        // Adicionar primeiro campo
-        adicionarCampo("texto");
+    // Dados do produto
+    const produtoData = {
+      nome: nome.value.trim(),
+      ordem: parseInt(ordem.value),
+      detalhes: JSON.stringify(detalhes),
+    };
 
-        // Event listener para o botão de adicionar campo
-        adicionarCampoBtn.addEventListener("click", () =>
-          adicionarCampo("texto")
+    let resultado;
+
+    // Verificar se é uma edição ou adição
+    if (produtoId.value) {
+      // Editar produto existente
+      resultado = await supabaseClient
+        .from("produtos_pascoa")
+        .update(produtoData)
+        .eq("id", produtoId.value);
+
+      if (resultado.error) {
+        console.error("Erro ao atualizar produto:", resultado.error);
+        mostrarAlerta(
+          "Erro ao atualizar produto. Tente novamente.",
+          "danger"
         );
+        return;
+      }
 
-        // Event listener para o formulário
-        produtoForm.addEventListener("submit", salvarProduto);
+      mostrarAlerta("Produto atualizado com sucesso!");
+    } else {
+      // Adicionar novo produto
+      resultado = await supabaseClient
+        .from("produtos_pascoa")
+        .insert(produtoData);
 
-        // Event listener para o botão de cancelar
-        cancelarBtn.addEventListener("click", limparFormulario);
+      if (resultado.error) {
+        console.error("Erro ao adicionar produto:", resultado.error);
+        mostrarAlerta(
+          "Erro ao adicionar produto. Tente novamente.",
+          "danger"
+        );
+        return;
+      }
 
-        // Event listener para o botão de visualizar cardápio
-        visualizarBtn.addEventListener("click", () => {
-          window.open("pascoa.html", "_blank");
-        });
-      });
+      mostrarAlerta("Produto adicionado com sucesso!");
+    }
+
+    // Limpar formulário e recarregar produtos
+    limparFormulario();
+    carregarProdutos();
+  } catch (error) {
+    console.error("Erro:", error);
+    mostrarAlerta("Erro ao salvar produto. Tente novamente.", "danger");
+  } finally {
+    esconderLoading();
+  }
+}
+
+// Event Listeners
+document.addEventListener("DOMContentLoaded", () => {
+  // Carregar produtos
+  carregarProdutos();
+
+  // Adicionar primeiro campo
+  adicionarCampo("texto");
+
+  // Event listener para o botão de adicionar campo
+  adicionarCampoBtn.addEventListener("click", () =>
+    adicionarCampo("texto")
+  );
+
+  // Event listener para o formulário
+  produtoForm.addEventListener("submit", salvarProduto);
+
+  // Event listener para o botão de cancelar
+  cancelarBtn.addEventListener("click", limparFormulario);
+
+  // Event listener para o botão de visualizar cardápio
+  visualizarBtn.addEventListener("click", () => {
+    window.open("pascoa.html", "_blank");
+  });
+});
     </script>
   </body>
 </html>
