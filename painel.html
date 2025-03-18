@@ -386,7 +386,8 @@
       const SUPABASE_URL = "https://dbtkufhsgdnfxjcjypqa.supabase.co";
       const SUPABASE_KEY =
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRidGt1ZmhzZ2RuZnhqY2p5cHFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIwMDU0NzksImV4cCI6MjA1NzU4MTQ3OX0.B9Ktlj5KAwd7-wD--uJG47zeEQwWTBc5sXoPacoUyCk";
-      const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        const { createClient } = supabase;
+        const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY);
 
       // Estado global da aplicação
       let editandoProduto = null;
@@ -458,10 +459,10 @@
                     </div>
                 `;
 
-          const { data, error } = await supabase
-            .from("produtos_pascoa")
-            .select("*")
-            .order("ordem", { ascending: true });
+                const { data, error } = await supabaseClient
+                .from('produtos_pascoa')
+                .select('*')
+                .order('ordem', { ascending: true });
 
           if (error) {
             console.error("Erro ao carregar produtos:", error);
@@ -1028,7 +1029,7 @@
 
         // Event listener para o botão de visualizar cardápio
         visualizarBtn.addEventListener("click", () => {
-          window.open("index.html", "_blank");
+          window.open("pascoa.html", "_blank");
         });
       });
     </script>
