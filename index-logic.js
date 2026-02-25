@@ -1,16 +1,6 @@
-// --- CONFIGURAÇÕES ---
-const firebaseConfig = {
-    apiKey: "AIzaSyCM9tMvnRV-o7X66euCBKuLmuz-kIrClWY",
-    authDomain: "renata-26079.firebaseapp.com",
-    projectId: "renata-26079",
-    storageBucket: "renata-26079.firebasestorage.app",
-    messagingSenderId: "995787482442",
-    appId: "1:995787482442:web:fdbca404a0e251cc278db3"
-};
-
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
-const auth = firebase.auth();
+const db = window.db;
+const auth = window.auth;
+const clienteSession = window.ClienteSession || null;
 
 // Constantes
 const REGIAO_ATENDIMENTO = "Curitiba e Região";
@@ -19,7 +9,8 @@ let configuracaoLoja = { status: 'Fechada', horario_abertura: '18:00', horario_f
 // Estado Global
 let carrinho = JSON.parse(localStorage.getItem('meuCarrinho')) || [];
 let favoritos = JSON.parse(localStorage.getItem('meusFavoritos')) || [];
-let userPoints = parseInt(localStorage.getItem('userPoints') || 0);
+let clienteAtual = clienteSession ? clienteSession.obterCliente() : null;
+let userPoints = clienteAtual?.pontos || parseInt(localStorage.getItem('userPoints') || 0);
 let todosProdutos = []; 
 let produtoSelecionado = null, qtdModal = 1;
 let filtroFavoritosAtivo = false;
@@ -28,14 +19,21 @@ let filtroFavoritosAtivo = false;
 const sanitizarId = (str) => str.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
 const formatarMoeda = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
 const vibrar = () => { if (navigator.vibrate) navigator.vibrate(50); };
+const dedupeIds = (lista = []) => [...new Set((Array.isArray(lista) ? lista : []).filter(Boolean))];
 
 // --- INICIALIZAÇÃO ---
 document.addEventListener('DOMContentLoaded', () => {
+    if (!db || !auth) {
+        console.error('Firebase nao foi inicializado corretamente.');
+        return;
+    }
+
     // Configura autenticação anônima se não houver usuário logado
     auth.onAuthStateChanged(user => { if (!user) auth.signInAnonymously(); });
     initApp();
     atualizarSaudacao();
     atualizarPontosUI();
+    initClienteSessao();
     
     // Efeito de sombra e glass no header ao rolar a página
     let lastScroll = 0;
@@ -57,9 +55,44 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('search-input').addEventListener('input', (e) => filtrarVitrine(e.target.value.toLowerCase()));
 });
 
+async function initClienteSessao() {
+    if (!clienteSession) return;
+
+    try {
+        const local = clienteSession.obterCliente();
+        if (local) {
+            clienteSession.salvarLocal(local);
+            clienteAtual = local;
+            userPoints = parseInt(local.pontos || 0, 10) || 0;
+            atualizarSaudacao();
+            atualizarPontosUI();
+        }
+
+        if (local?.telefone_limpo || local?.telefone) {
+            const remoto = await clienteSession.carregarDoFirebase(local.telefone_limpo || local.telefone);
+            if (remoto) {
+                clienteAtual = remoto;
+                userPoints = parseInt(remoto.pontos || 0, 10) || 0;
+                atualizarSaudacao();
+                atualizarPontosUI();
+            }
+
+            const favoritosConta = await clienteSession.carregarFavoritos(local.telefone_limpo || local.telefone);
+            const favoritosCombinados = dedupeIds([...favoritos, ...favoritosConta]);
+            favoritos = favoritosCombinados;
+            localStorage.setItem('meusFavoritos', JSON.stringify(favoritos));
+            if (favoritosCombinados.length !== favoritosConta.length) {
+                await clienteSession.salvarFavoritos(favoritosCombinados, local.telefone_limpo || local.telefone);
+            }
+        }
+    } catch (e) {
+        console.warn('Falha ao sincronizar sessao do cliente:', e);
+    }
+}
+
 // Atualiza a saudação no topo (Bom dia, Boa tarde, Boa noite)
 function atualizarSaudacao() {
-    const nome = localStorage.getItem('userName');
+    const nome = clienteAtual?.nome || localStorage.getItem('userName');
     const el = document.getElementById('saudacao-usuario');
     const hora = new Date().getHours();
     let periodo = "Olá";
@@ -98,6 +131,8 @@ async function initApp() {
         // Busca produtos ativos
         const snap = await db.collection('produtos').where('ativo', '==', true).get();
         todosProdutos = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        sincronizarFavoritosComCardapio();
+        sanitizarCarrinhoPorCardapio();
         
         renderizarBanners(todosProdutos);
         renderizarCategorias(todosProdutos);
@@ -106,6 +141,41 @@ async function initApp() {
         
     } catch (e) {
         console.error("Erro ao carregar app:", e);
+    }
+}
+
+function sincronizarFavoritosComCardapio() {
+    const ativos = new Set(todosProdutos.map(p => p.id));
+    const anteriores = [...favoritos];
+    favoritos = dedupeIds(favoritos).filter(id => ativos.has(id));
+
+    if (anteriores.length !== favoritos.length) {
+        localStorage.setItem('meusFavoritos', JSON.stringify(favoritos));
+        salvarFavoritosConta();
+    }
+}
+
+function sanitizarCarrinhoPorCardapio() {
+    const ativos = new Set(todosProdutos.map(p => p.id));
+    const tamanhoAnterior = carrinho.length;
+    carrinho = carrinho.filter(item => ativos.has(item.id));
+
+    if (carrinho.length !== tamanhoAnterior) {
+        salvarCarrinho();
+        if (document.getElementById('lista-carrinho')) renderizarCarrinho();
+        mostrarToast('Itens indisponiveis foram removidos da sacola.', 'erro');
+    }
+}
+
+async function salvarFavoritosConta() {
+    if (!clienteSession) return;
+    const sessao = clienteSession.obterCliente();
+    if (!sessao?.telefone_limpo && !sessao?.telefone) return;
+
+    try {
+        await clienteSession.salvarFavoritos(favoritos, sessao.telefone_limpo || sessao.telefone);
+    } catch (err) {
+        console.warn('Nao foi possivel salvar favoritos na conta:', err);
     }
 }
 
@@ -250,6 +320,7 @@ window.toggleFavorito = (id) => {
         if (filtroFavoritosAtivo) { filtrarFavoritos(true); return; }
     }
     localStorage.setItem('meusFavoritos', JSON.stringify(favoritos));
+    salvarFavoritosConta();
     renderizarVitrine(todosProdutos);
     atualizarIconeFavoritosHeader();
     if (produtoSelecionado && produtoSelecionado.id === id) atualizarBotaoFavModal();
@@ -318,6 +389,13 @@ function atualizarBtnModal() {
 
 window.addAoCarrinho = () => {
     vibrar();
+    const ativo = todosProdutos.some(p => p.id === produtoSelecionado.id);
+    if (!ativo) {
+        mostrarToast('Produto indisponivel no momento.', 'erro');
+        toggleModal('modal-produto', false);
+        return;
+    }
+
     const obs = document.getElementById('modal-obs').value;
     const item = { ...produtoSelecionado, qtd: qtdModal, obs: obs };
     carrinho.push(item);
@@ -361,16 +439,35 @@ function renderizarCarrinho() {
 }
 window.removerItem = (idx) => { vibrar(); carrinho.splice(idx, 1); salvarCarrinho(); renderizarCarrinho(); }
 
-window.prepararPedido = () => {
+window.prepararPedido = async () => {
     if (configuracaoLoja.status === 'Fechada') {
         vibrar(); alert('A loja está fechada. Voltamos às ' + configuracaoLoja.horario_abertura); return;
     }
-    const nome = localStorage.getItem('userName');
-    const fone = localStorage.getItem('userPhone');
+    const sessaoCliente = clienteSession ? clienteSession.obterCliente() : null;
+    const nome = sessaoCliente?.nome || localStorage.getItem('userName');
+    const fone = sessaoCliente?.telefone || localStorage.getItem('userPhone');
     if (!nome || !fone) {
         toggleModal('modal-carrinho', false);
         mostrarToast('Faça login para finalizar', 'erro');
         setTimeout(() => window.location.href = "perfil.html", 1500);
+        return;
+    }
+
+    const checks = await Promise.all(carrinho.map(async (item) => {
+        try {
+            const snap = await db.collection('produtos').doc(item.id).get();
+            return { id: item.id, ativo: snap.exists && snap.data()?.ativo === true };
+        } catch (_e) {
+            return { id: item.id, ativo: false };
+        }
+    }));
+    const ativosAgora = new Set(checks.filter(c => c.ativo).map(c => c.id));
+    const indisponiveis = carrinho.filter(i => !ativosAgora.has(i.id));
+    if (indisponiveis.length > 0) {
+        carrinho = carrinho.filter(i => ativosAgora.has(i.id));
+        salvarCarrinho();
+        renderizarCarrinho();
+        mostrarToast('Alguns itens sairam do cardapio. Revise sua sacola.', 'erro');
         return;
     }
 
@@ -383,15 +480,8 @@ window.prepararPedido = () => {
     const txtOriginal = btn.innerText; // Guarda o texto original
     btn.innerText = 'Enviando...'; btn.disabled = true;
 
-    // ATUALIZA PONTOS (antes de limpar o carrinho)
     const pontosGanhos = 1;
-    userPoints += pontosGanhos;
-    localStorage.setItem('userPoints', userPoints);
-    atualizarPontosUI();
-    
-    // Salva pontos no Firebase se tiver ID (Telefone)
-    const uid = fone.replace(/\D/g, '');
-    db.collection('users').doc(uid).set({ pontos: userPoints }, { merge: true });
+    const uid = clienteSession ? clienteSession.normalizarTelefone(fone) : fone.replace(/\D/g, '');
 
     const pedido = {
         id_visual: `#${Math.floor(Math.random()*10000)}`,
@@ -406,7 +496,27 @@ window.prepararPedido = () => {
         data: new Date().toISOString()
     };
 
-    db.collection('pedidos').add(pedido).then(() => {
+    db.collection('pedidos').add(pedido).then(async () => {
+        try {
+            if (clienteSession) {
+                const atualizado = await clienteSession.registrarPedido({
+                    nome,
+                    telefone: fone,
+                    pontosGanhos,
+                    valorPedido: total
+                });
+                clienteAtual = atualizado;
+                userPoints = atualizado?.pontos || userPoints;
+            } else {
+                userPoints += pontosGanhos;
+                localStorage.setItem('userPoints', String(userPoints));
+            }
+            atualizarPontosUI();
+            atualizarSaudacao();
+        } catch (erroPontos) {
+            console.warn('Pedido enviado, mas nao foi possivel atualizar pontos:', erroPontos);
+        }
+
         // --- NOVO PASSO: SALVA DADOS DO PEDIDO PARA A PÁGINA DE COMPROVANTE ---
         // Usamos sessionStorage pois a informação só é necessária para o próximo carregamento.
         sessionStorage.setItem('lastPedidoData', JSON.stringify(pedido));

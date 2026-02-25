@@ -16,6 +16,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
+    <script src="firebase-init.js"></script>
 
     <!-- FONTES -->
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;800&display=swap" rel="stylesheet">
@@ -44,19 +45,8 @@
     </style>
 
     <script>
-        // --- FIREBASE CONFIG ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyCM9tMvnRV-o7X66euCBKuLmuz-kIrClWY",
-            authDomain: "renata-26079.firebaseapp.com",
-            projectId: "renata-26079",
-            storageBucket: "renata-26079.firebasestorage.app",
-            messagingSenderId: "995787482442",
-            appId: "1:995787482442:web:fdbca404a0e251cc278db3"
-        };
-
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const auth = firebase.auth();
+        const db = window.db;
+        const auth = window.auth;
 
         // --- ESTADO ---
         let clientesCache = [];
@@ -64,6 +54,11 @@
 
         // --- LIFECYCLE ---
         document.addEventListener('DOMContentLoaded', () => {
+            if (!db || !auth) {
+                alert('Erro ao iniciar Firebase. Recarregue a página.');
+                return;
+            }
+
             auth.onAuthStateChanged(user => { if (!user) auth.signInAnonymously(); });
             
             carregarClientes();
@@ -116,8 +111,9 @@
 
             lista.forEach(c => {
                 const dadosJson = encodeURIComponent(JSON.stringify(c));
-                const dataCad = c.data_cadastro ? new Date(c.data_cadastro).toLocaleDateString('pt-BR') : '--/--/----';
                 const ultimoAcesso = c.ultimo_acesso ? new Date(c.ultimo_acesso).toLocaleDateString('pt-BR') : 'Nunca';
+                const pontos = parseInt(c.pontos || 0, 10) || 0;
+                const totalPedidos = parseInt(c.total_pedidos || 0, 10) || 0;
 
                 grid.innerHTML += `
                 <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 hover:shadow-md transition-shadow flex items-center gap-4 group">
@@ -134,6 +130,14 @@
                             <span>${c.telefone || 'Sem fone'}</span>
                         </div>
                         <p class="text-xs text-gray-400 mt-1">Acesso: ${ultimoAcesso}</p>
+                        <div class="mt-1 flex items-center gap-2">
+                            <span class="text-[11px] font-bold text-brand-600 bg-brand-50 border border-brand-100 px-2 py-0.5 rounded-full">${pontos} pontos</span>
+                            <span class="text-[11px] font-bold text-gray-600 bg-gray-100 border border-gray-200 px-2 py-0.5 rounded-full">${totalPedidos} pedidos</span>
+                        </div>
+                        <div class="mt-2 flex items-center gap-2">
+                            <button onclick="ajustarPontos('${c.id}', -1)" class="px-2 py-1 text-xs font-bold rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition">-1 ponto</button>
+                            <button onclick="ajustarPontos('${c.id}', 1)" class="px-2 py-1 text-xs font-bold rounded-lg bg-brand-600 text-white hover:bg-brand-700 transition">+1 ponto</button>
+                        </div>
                     </div>
 
                     <!-- Ações -->
@@ -172,9 +176,11 @@
                 titulo.innerText = "Editar Cliente";
                 document.getElementById('nome').value = c.nome || '';
                 document.getElementById('telefone').value = c.telefone || '';
+                document.getElementById('pontos').value = parseInt(c.pontos || 0, 10) || 0;
             } else {
                 editandoId = null;
                 titulo.innerText = "Novo Cliente";
+                document.getElementById('pontos').value = 0;
             }
 
             drawer.classList.remove('hidden');
@@ -212,27 +218,47 @@
                 const nome = document.getElementById('nome').value.trim();
                 const telefone = document.getElementById('telefone').value.trim();
                 const telefoneLimpo = telefone.replace(/\D/g, '');
+                const pontos = parseInt(document.getElementById('pontos').value || '0', 10);
 
                 if (nome.length < 3) throw new Error("Nome muito curto.");
                 if (telefoneLimpo.length < 10) throw new Error("Telefone inválido.");
+                if (pontos < 0) throw new Error("Pontos não pode ser negativo.");
 
                 const dados = {
                     nome,
                     telefone,
                     telefone_limpo: telefoneLimpo,
+                    pontos: pontos || 0,
                     ultimo_acesso: new Date().toISOString()
                 };
 
                 if (editandoId) {
-                    await db.collection('clientes').doc(editandoId).update(dados);
+                    if (editandoId !== telefoneLimpo) {
+                        const destinoRef = db.collection('clientes').doc(telefoneLimpo);
+                        const destinoSnap = await destinoRef.get();
+                        if (destinoSnap.exists) throw new Error("Já existe cliente com o novo telefone.");
+
+                        const origemRef = db.collection('clientes').doc(editandoId);
+                        const origemSnap = await origemRef.get();
+                        const origemData = origemSnap.exists ? origemSnap.data() : {};
+
+                        await destinoRef.set({ ...origemData, ...dados }, { merge: true });
+                        await origemRef.delete();
+                        editandoId = telefoneLimpo;
+                    } else {
+                        await db.collection('clientes').doc(editandoId).update(dados);
+                    }
                     mostrarToast("Cliente atualizado!", "sucesso");
                 } else {
                     dados.data_cadastro = new Date().toISOString();
-                    // Verifica duplicidade
-                    const check = await db.collection('clientes').where('telefone_limpo', '==', telefoneLimpo).get();
-                    if (!check.empty) throw new Error("Já existe um cliente com este telefone.");
-                    
-                    await db.collection('clientes').add(dados);
+                    dados.total_pedidos = 0;
+                    dados.total_gasto = 0;
+
+                    const ref = db.collection('clientes').doc(telefoneLimpo);
+                    const existente = await ref.get();
+                    if (existente.exists) throw new Error("Já existe um cliente com este telefone.");
+
+                    await ref.set(dados, { merge: true });
                     mostrarToast("Cliente cadastrado!", "sucesso");
                 }
                 fecharDrawer();
@@ -251,6 +277,28 @@
                     await db.collection('clientes').doc(id).delete();
                     mostrarToast("Cliente removido.", "erro");
                 } catch(e) { alert("Erro: " + e.message); }
+            }
+        }
+
+        async function ajustarPontos(id, delta) {
+            try {
+                const ref = db.collection('clientes').doc(id);
+                const snap = await ref.get();
+                if (!snap.exists) {
+                    throw new Error("Cliente não encontrado.");
+                }
+
+                const atual = parseInt(snap.data().pontos || 0, 10) || 0;
+                const novoValor = Math.max(0, atual + delta);
+
+                await ref.update({
+                    pontos: novoValor,
+                    ultimo_acesso: new Date().toISOString()
+                });
+
+                mostrarToast(`Pontos atualizados: ${novoValor}`, "sucesso");
+            } catch (e) {
+                alert("Erro ao ajustar pontos: " + e.message);
             }
         }
 
@@ -355,6 +403,10 @@
                 <div>
                     <label class="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Celular / WhatsApp</label>
                     <input type="tel" id="telefone" required class="w-full p-3 border border-gray-200 rounded-xl focus:border-brand-500 focus:ring-0 outline-none font-bold text-gray-800" placeholder="(00) 00000-0000" maxlength="15">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Pontos Fidelidade</label>
+                    <input type="number" id="pontos" min="0" step="1" value="0" class="w-full p-3 border border-gray-200 rounded-xl focus:border-brand-500 focus:ring-0 outline-none font-bold text-gray-800">
                 </div>
             </form>
         </div>

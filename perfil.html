@@ -106,55 +106,77 @@
         </button>
     </div>
 
+    <script src="firebase-init.js"></script>
+    <script src="cliente-session.js"></script>
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyCM9tMvnRV-o7X66euCBKuLmuz-kIrClWY",
-            authDomain: "renata-26079.firebaseapp.com",
-            projectId: "renata-26079",
-            storageBucket: "renata-26079.firebasestorage.app",
-            messagingSenderId: "995787482442",
-            appId: "1:995787482442:web:fdbca404a0e251cc278db3"
-        };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
+        const clienteSession = window.ClienteSession;
+        const db = window.db;
+        const auth = window.auth;
 
-        document.addEventListener('DOMContentLoaded', () => {
-            loadUserData();
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!db || !auth || !clienteSession) {
+                alert('Erro ao iniciar o perfil. Recarregue a página.');
+                return;
+            }
+
+            auth.onAuthStateChanged(user => {
+                if (!user) auth.signInAnonymously();
+            });
+
+            await loadUserData();
         });
 
-        function loadUserData() {
-            const nome = localStorage.getItem('userName');
-            const fone = localStorage.getItem('userPhone');
-            const pontos = parseInt(localStorage.getItem('userPoints') || 0);
-
-            if(nome) {
-                document.getElementById('nome').value = nome;
-                document.getElementById('user-name-display').innerText = nome;
-                document.getElementById('user-photo').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(nome)}&background=db2777&color=fff`;
+        function preencherUI(cliente) {
+            if (!cliente) {
+                renderStamps(0);
+                return;
             }
-            if(fone) {
-                document.getElementById('telefone').value = fone;
-                document.getElementById('user-phone-display').innerText = fone;
+
+            const nome = cliente.nome || '';
+            const fone = cliente.telefone || '';
+            const pontos = parseInt(cliente.pontos || 0, 10) || 0;
+
+            document.getElementById('nome').value = nome;
+            document.getElementById('telefone').value = fone;
+            document.getElementById('user-name-display').innerText = nome || 'Visitante';
+            document.getElementById('user-phone-display').innerText = fone || '--';
+
+            if (nome) {
+                document.getElementById('user-photo').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(nome)}&background=db2777&color=fff`;
             }
 
             renderStamps(pontos);
         }
 
+        async function loadUserData() {
+            const local = clienteSession.obterCliente();
+            preencherUI(local);
+
+            try {
+                if (local?.telefone_limpo || local?.telefone) {
+                    const remoto = await clienteSession.carregarDoFirebase(local.telefone_limpo || local.telefone);
+                    if (remoto) preencherUI(remoto);
+                }
+            } catch (erro) {
+                console.warn('Nao foi possivel carregar perfil remoto:', erro);
+            }
+        }
+
         function renderStamps(pontos) {
+            const pontosNum = parseInt(pontos || 0, 10) || 0;
             const grid = document.getElementById('stamps-grid');
+            const premio = document.getElementById('premio-box');
             grid.innerHTML = '';
-            document.getElementById('pontos-txt').innerText = pontos;
+            document.getElementById('pontos-txt').innerText = pontosNum;
+            premio.classList.toggle('hidden', pontosNum < 10);
 
-            if(pontos >= 10) document.getElementById('premio-box').classList.remove('hidden');
-
-            for(let i=1; i<=10; i++) {
-                const filled = i <= pontos;
+            for (let i = 1; i <= 10; i++) {
+                const filled = i <= pontosNum;
                 const delay = i * 100;
-                
                 const stamp = document.createElement('div');
                 stamp.className = `aspect-square rounded-full flex items-center justify-center border-2 ${filled ? 'border-brand-600 bg-brand-50' : 'border-gray-200 bg-gray-50'}`;
-                
-                if(filled) {
+
+                if (filled) {
                     stamp.innerHTML = `<svg class="w-6 h-6 text-brand-600 stamp-animation" style="animation-delay: ${delay}ms" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>`;
                 } else {
                     stamp.innerHTML = `<span class="text-gray-300 text-xs font-bold">${i}</span>`;
@@ -163,33 +185,39 @@
             }
         }
 
-        document.getElementById('profile-form').addEventListener('submit', (e) => {
+        document.getElementById('profile-form').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const nome = document.getElementById('nome').value;
-            const fone = document.getElementById('telefone').value;
+            const nome = document.getElementById('nome').value.trim();
+            const fone = document.getElementById('telefone').value.trim();
+            const telefoneLimpo = clienteSession.normalizarTelefone(fone);
 
-            if(nome && fone) {
-                localStorage.setItem('userName', nome);
-                localStorage.setItem('userPhone', fone);
-                
-                // Salva no Firebase para ter histórico real
-                const uid = fone.replace(/\D/g, ''); // Usa telefone como ID simples
-                db.collection('users').doc(uid).set({
-                    nome: nome,
+            if (nome.length < 3) {
+                alert('Digite um nome válido.');
+                return;
+            }
+            if (telefoneLimpo.length < 10) {
+                alert('Digite um WhatsApp válido.');
+                return;
+            }
+
+            try {
+                await clienteSession.sincronizar({
+                    nome,
                     telefone: fone,
-                    lastUpdate: new Date()
-                }, { merge: true });
+                    telefone_limpo: telefoneLimpo
+                });
 
                 alert('Perfil atualizado com sucesso!');
-                loadUserData();
-            } else {
-                alert('Preencha todos os campos!');
+                await loadUserData();
+            } catch (erro) {
+                console.error(erro);
+                alert('Erro ao salvar perfil. Tente novamente.');
             }
         });
 
         function logout() {
-            if(confirm('Deseja sair?')) {
-                localStorage.clear();
+            if (confirm('Deseja sair?')) {
+                clienteSession.logout();
                 window.location.href = 'index.html';
             }
         }
