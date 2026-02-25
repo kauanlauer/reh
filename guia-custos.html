@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual de Precificação - Delicia D'Brownie</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['DM Sans', 'sans-serif'], serif: ['Playfair Display', 'serif'] },
+                    colors: { brand: { 500: '#ec4899', 600: '#db2777', 900: '#831843' } }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Ajustes para Impressão (Ctrl+P) */
+        @media print {
+            body { background: white; color: black; }
+            .no-print { display: none !important; }
+            .page-break { page-break-before: always; }
+            .shadow-lg, .shadow-xl { box-shadow: none !important; border: 1px solid #ddd; }
+            .bg-gray-50 { background-color: #f9fafb !important; -webkit-print-color-adjust: exact; }
+            .bg-brand-600 { background-color: #db2777 !important; color: white !important; -webkit-print-color-adjust: exact; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-700 font-sans min-h-screen">
+
+    <!-- BARRA DE AÇÃO (Não sai na impressão) -->
+    <div class="no-print fixed bottom-6 right-6 z-50 flex gap-2">
+        <a href="admin-custos.html" class="bg-white text-gray-600 px-4 py-3 rounded-full shadow-lg font-bold flex items-center gap-2 hover:bg-gray-50 border border-gray-200">
+            <i class="ri-arrow-left-line"></i> Voltar
+        </a>
+        <button onclick="window.print()" class="bg-brand-600 text-white px-6 py-3 rounded-full shadow-lg font-bold flex items-center gap-2 hover:bg-brand-500 animate-bounce">
+            <i class="ri-printer-line"></i> Imprimir Guia / Salvar PDF
+        </button>
+    </div>
+
+    <!-- CONTEÚDO DO DOCUMENTO -->
+    <div class="max-w-3xl mx-auto bg-white shadow-xl min-h-screen p-8 md:p-16 my-0 md:my-10 print:my-0 print:shadow-none">
+        
+        <!-- CABEÇALHO -->
+        <header class="text-center border-b-2 border-brand-600 pb-8 mb-8">
+            <div class="w-20 h-20 bg-gray-100 rounded-full mx-auto mb-4 flex items-center justify-center border-2 border-brand-600">
+                <!-- Logo Placeholder -->
+                <i class="ri-calculator-fill text-3xl text-brand-600"></i>
+            </div>
+            <h1 class="text-4xl font-serif font-bold text-gray-900 mb-2">Entendendo seus Custos</h1>
+            <p class="text-lg text-gray-500">Como o sistema calcula o lucro real de cada produto</p>
+        </header>
+
+        <!-- INTRODUÇÃO -->
+        <section class="mb-10">
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
+                <p class="font-medium text-blue-800">Por que isso é importante?</p>
+                <p class="text-sm text-blue-600 mt-1">Muitas lojas perdem dinheiro sem saber porque calculam o custo errado. Nosso sistema automatiza a "regra de três" dos ingredientes e separa taxas invisíveis (como iFood) dos custos físicos.</p>
+            </div>
+        </section>
+
+        <!-- 1. A FÓRMULA -->
+        <section class="mb-12">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <span class="w-8 h-8 bg-brand-600 text-white rounded-full flex items-center justify-center text-sm">1</span>
+                A Matemática do Lucro
+            </h2>
+            <p class="mb-4 text-gray-600">O sistema segue uma lógica rigorosa para te dar a verdade:</p>
+            
+            <div class="flex flex-col md:flex-row items-center justify-center gap-4 text-center font-bold text-sm md:text-base bg-gray-50 p-6 rounded-xl border border-gray-200">
+                <div class="bg-green-100 text-green-800 px-4 py-2 rounded-lg border border-green-200 w-full md:w-auto">
+                    Preço de Venda
+                </div>
+                <div class="text-gray-400"><i class="ri-subtract-line text-xl"></i></div>
+                <div class="bg-red-50 text-red-800 px-4 py-2 rounded-lg border border-red-100 w-full md:w-auto">
+                    Custo Ingredientes
+                    <br><span class="text-[10px] font-normal">(Proporcional)</span>
+                </div>
+                <div class="text-gray-400"><i class="ri-subtract-line text-xl"></i></div>
+                <div class="bg-orange-50 text-orange-800 px-4 py-2 rounded-lg border border-orange-100 w-full md:w-auto">
+                    Custos Fixos
+                    <br><span class="text-[10px] font-normal">(Embalagem/Gás)</span>
+                </div>
+                <div class="text-gray-400"><i class="ri-subtract-line text-xl"></i></div>
+                <div class="bg-purple-50 text-purple-800 px-4 py-2 rounded-lg border border-purple-100 w-full md:w-auto">
+                    Taxas Variáveis
+                    <br><span class="text-[10px] font-normal">(% iFood/Cartão)</span>
+                </div>
+                <div class="text-gray-400"><i class="ri-equal-line text-xl"></i></div>
+                <div class="bg-gray-800 text-white px-6 py-3 rounded-lg shadow-lg w-full md:w-auto border border-gray-900">
+                    LUCRO REAL
+                </div>
+            </div>
+        </section>
+
+        <div class="page-break"></div>
+
+        <!-- 2. DETALHANDO OS CAMPOS -->
+        <section class="mb-12">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+                <span class="w-8 h-8 bg-brand-600 text-white rounded-full flex items-center justify-center text-sm">2</span>
+                Entendendo cada Campo
+            </h2>
+
+            <!-- INGREDIENTES -->
+            <div class="mb-8">
+                <h3 class="font-bold text-lg text-gray-800 mb-2 border-b border-gray-100 pb-2">🅰️ Ingredientes (Custo Proporcional)</h3>
+                <p class="text-sm text-gray-600 mb-4">Aqui você cadastra a matéria-prima. O pulo do gato é que você informa <strong>como compra</strong> e <strong>quanto usa</strong>. O sistema calcula o resto.</p>
+                
+                <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-gray-50 text-gray-500 font-bold uppercase text-xs">
+                            <tr>
+                                <th class="p-3">Campo</th>
+                                <th class="p-3">O que preencher?</th>
+                                <th class="p-3">Exemplo Prático</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100">
+                            <tr>
+                                <td class="p-3 font-bold text-brand-600">Preço de Compra</td>
+                                <td class="p-3">Quanto você pagou no pacote fechado no mercado.</td>
+                                <td class="p-3">Paguei <strong>R$ 15,00</strong> num saco de farinha.</td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 font-bold text-brand-600">Qtd. da Embalagem</td>
+                                <td class="p-3">O peso ou volume total que vem na embalagem fechada.</td>
+                                <td class="p-3">O saco tem <strong>5kg</strong> (ou 5000g).</td>
+                            </tr>
+                            <tr>
+                                <td class="p-3 font-bold text-brand-600">Uso na Receita</td>
+                                <td class="p-3">Quanto dessa matéria-prima vai em <strong>UMA</strong> unidade do seu produto.</td>
+                                <td class="p-3">Para um brownie, uso <strong>50g</strong> de farinha.</td>
+                            </tr>
+                            <tr class="bg-green-50">
+                                <td class="p-3 font-bold text-green-700">Cálculo Automático</td>
+                                <td class="p-3 text-green-700" colspan="2">
+                                    O sistema faz: (15,00 ÷ 5000g) × 50g = <strong>R$ 0,15</strong> de custo.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- CUSTOS EXTRAS (FIXOS vs VARIÁVEIS) -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                <!-- Fixos -->
+                <div class="border border-gray-200 rounded-xl p-5 bg-orange-50/30">
+                    <h3 class="font-bold text-orange-700 mb-2 flex items-center gap-2">
+                        <i class="ri-money-dollar-box-line"></i> Custos Fixos (R$)
+                    </h3>
+                    <p class="text-xs text-gray-600 mb-3">São custos que <strong>não dependem do preço de venda</strong>, mas você gasta para produzir cada unidade.</p>
+                    <ul class="text-sm space-y-2 list-disc list-inside text-gray-700">
+                        <li><strong>Embalagem:</strong> Caixa, fita, adesivo (Ex: R$ 1,50).</li>
+                        <li><strong>Gás/Luz:</strong> Uma estimativa difícil de medir exato, mas essencial. Estime um valor fixo (Ex: R$ 0,50 por brownie assado).</li>
+                    </ul>
+                </div>
+
+                <!-- Variáveis -->
+                <div class="border border-gray-200 rounded-xl p-5 bg-purple-50/30">
+                    <h3 class="font-bold text-purple-700 mb-2 flex items-center gap-2">
+                        <i class="ri-percent-line"></i> Taxas Variáveis (%)
+                    </h3>
+                    <p class="text-xs text-gray-600 mb-3">São "mordidas" que parceiros dão no seu valor de venda. Se o preço do produto sobe, essa taxa sobe junto (em dinheiro).</p>
+                    <ul class="text-sm space-y-2 list-disc list-inside text-gray-700">
+                        <li><strong>iFood:</strong> Geralmente 12% a 27%.</li>
+                        <li><strong>Cartão:</strong> Taxa da maquininha (Ex: 4%).</li>
+                        <li><strong>Imposto:</strong> Se emitir nota (Ex: DAS MEI).</li>
+                    </ul>
+                    <p class="text-[10px] mt-2 text-purple-600 font-bold bg-purple-100 p-1 rounded">O sistema calcula essa % em cima do "Preço Simulado".</p>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 3. O SIMULADOR -->
+        <section class="mb-12">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <span class="w-8 h-8 bg-brand-600 text-white rounded-full flex items-center justify-center text-sm">3</span>
+                O Simulador de Preço
+            </h2>
+            <div class="bg-gray-50 border border-gray-200 rounded-xl p-6 flex flex-col md:flex-row gap-6 items-center">
+                <div class="flex-1">
+                    <p class="text-gray-700 mb-3">
+                        No topo da calculadora, existe um campo chamado <strong>"Venda (R$)"</strong>. Ele puxa o preço atual do produto, mas você pode digitar qualquer valor ali.
+                    </p>
+                    <p class="text-gray-700 text-sm">
+                        <strong>Para que serve?</strong><br>
+                        Para você brincar de "E se?".<br>
+                        <em>"E se eu vender a R$ 10,00? Tenho lucro?"</em><br>
+                        <em>"E se eu vender a R$ 12,00?"</em>
+                    </p>
+                    <p class="text-xs text-gray-400 mt-2 italic">* Alterar este valor na calculadora NÃO muda o preço na vitrine da loja, é apenas para simulação.</p>
+                </div>
+                <div class="w-full md:w-64 bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
+                    <div class="text-xs font-bold text-gray-400 uppercase mb-1">Exemplo Visual</div>
+                    <div class="flex items-center gap-2 bg-gray-100 p-2 rounded mb-2">
+                        <span class="text-xs font-bold">Venda (R$)</span>
+                        <div class="bg-white border border-gray-300 px-2 rounded font-black text-brand-600">15,00</div>
+                        <i class="ri-edit-line text-gray-400"></i>
+                    </div>
+                    <div class="text-center">
+                        <div class="text-xs text-gray-500">Lucro Resultante</div>
+                        <div class="text-xl font-black text-green-500">R$ 4,50</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FOOTER -->
+        <footer class="text-center text-gray-400 text-sm border-t border-gray-200 pt-8 mt-10">
+            <p class="font-bold text-gray-500 mb-1">Delicia D'Brownie - Sistema de Gestão</p>
+            <p>Documento gerado em <script>document.write(new Date().toLocaleDateString())</script></p>
+        </footer>
+
+    </div>
+
+</body>
+</html>

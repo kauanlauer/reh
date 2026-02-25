@@ -1,9 +1,19 @@
 <!DOCTYPE html>
 <html lang="pt-br">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Produtos</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1f2937">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Gestão de Produtos | Admin</title>
+
+    <!-- FAVICON -->
+    <link rel="icon" type="image/png" href="logo.png">
+
+    <!-- TAILWIND CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- FIREBASE -->
@@ -11,7 +21,84 @@
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
 
+    <!-- FONTES -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;800&display=swap"
+        rel="stylesheet">
+
     <script>
+        // Configuração do Tailwind CSS
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['DM Sans', 'sans-serif'], serif: ['Playfair Display', 'serif'] },
+                    colors: {
+                        brand: { 50: '#fff1f2', 100: '#ffe4e6', 500: '#ec4899', 600: '#db2777', 800: '#9d174d' }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Estilos Personalizados */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+
+        .glass-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .pb-safe-area {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        /* Toggle Switch Animado */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #10B981;
+        }
+
+        .toggle-checkbox:checked+.toggle-label {
+            background-color: #10B981;
+        }
+
+        /* Estilo do Prompt PWA */
+        #pwa-prompt {
+            transition: transform 0.3s ease-out;
+            transform: translateY(100%);
+        }
+
+        #pwa-prompt.visible {
+            transform: translateY(0);
+        }
+
+        @media (min-width: 768px) {
+            #pwa-prompt {
+                display: none !important;
+            }
+        }
+    </style>
+
+    <script>
+        // --- FIREBASE CONFIGURAÇÃO (Configurações da sua loja) ---
         const firebaseConfig = {
             apiKey: "AIzaSyCM9tMvnRV-o7X66euCBKuLmuz-kIrClWY",
             authDomain: "renata-26079.firebaseapp.com",
@@ -25,279 +112,664 @@
         const db = firebase.firestore();
         const auth = firebase.auth();
 
-        let editandoId = null;
+        // --- VARIÁVEIS DE ESTADO ---
+        let produtosCache = []; // Cache de todos os produtos
+        let editandoId = null;  // ID do produto em edição
+
+        // --- UTILIDADES ---
         const formatarMoeda = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
 
+        // --- LIFECYCLE ---
         document.addEventListener('DOMContentLoaded', () => {
+            // Login Anônimo para Admin (melhorar autenticação em produção)
             auth.onAuthStateChanged(user => { if (!user) auth.signInAnonymously(); });
+
             carregarProdutos();
 
-            // --- LÓGICA DE NOVA CATEGORIA ---
-            const selectCat = document.getElementById('categoria-select');
-            const inputCat = document.getElementById('categoria-nova');
-            
-            selectCat.addEventListener('change', () => {
-                if(selectCat.value === 'nova') {
-                    inputCat.classList.remove('hidden');
-                    inputCat.focus();
-                } else {
-                    inputCat.classList.add('hidden');
-                    inputCat.value = '';
-                }
+            // Event Listeners
+            document.getElementById('search-input').addEventListener('input', filtrarProdutos);
+            document.getElementById('categoria-select').addEventListener('change', toggleNovaCategoria);
+            document.getElementById('form-produto').addEventListener('submit', salvarProduto);
+
+            // Preview de Imagem no Form
+            document.getElementById('imagem').addEventListener('input', (e) => {
+                const img = document.getElementById('preview-img');
+                img.src = e.target.value || 'https://placehold.co/400?text=Sem+Imagem';
             });
 
-            // --- SALVAR PRODUTO ---
-            document.getElementById('form-produto').addEventListener('submit', (e) => {
-                e.preventDefault();
-                const btn = document.getElementById('btn-salvar');
-                btn.innerText = "Salvando...";
-                btn.disabled = true;
-
-                let categoriaFinal = selectCat.value;
-                if (categoriaFinal === 'nova') {
-                    categoriaFinal = inputCat.value.trim();
-                    if(!categoriaFinal) { alert("Digite o nome da nova categoria"); btn.disabled = false; return; }
-                }
-
-                const estoque = parseInt(document.getElementById('estoque-atual').value) || 0;
-
-                const dados = {
-                    categoria: categoriaFinal,
-                    tag_especial: document.getElementById('tag-especial').value,
-                    nome: document.getElementById('nome').value,
-                    descricao: document.getElementById('descricao').value,
-                    preco: parseFloat(document.getElementById('preco').value),
-                    preco_promo: parseFloat(document.getElementById('preco-promo').value) || 0,
-                    imagem: document.getElementById('imagem').value || 'https://placehold.co/400',
-                    destaque: document.getElementById('destaque').checked,
-                    ativo: document.getElementById('ativo').checked,
-                    estoque_atual: estoque, // Novo campo: Estoque
-                    data_atualizacao: new Date().toISOString()
-                };
-
-                let promessa;
-                if (editandoId) {
-                    promessa = db.collection('produtos').doc(editandoId).update(dados);
-                } else {
-                    dados.data_criacao = new Date().toISOString();
-                    promessa = db.collection('produtos').add(dados);
-                }
-
-                promessa.then(() => {
-                    alert("Produto Salvo!");
-                    limparFormulario();
-                    carregarProdutos();
-                }).catch(err => alert("Erro: " + err.message))
-                .finally(() => {
-                    btn.innerText = editandoId ? "Atualizar" : "Cadastrar";
-                    btn.disabled = false;
-                });
-            });
+            // NOVO: Verifica e solicita instalação PWA
+            checkAndPromptPWA();
         });
 
-        function carregarProdutos() {
-            const lista = document.getElementById('lista-produtos');
-            const selectCat = document.getElementById('categoria-select');
-            
-            lista.innerHTML = '<p class="text-center text-gray-500 py-4">Carregando estoque...</p>';
+        // --- LÓGICA PWA ---
+        function checkAndPromptPWA() {
+            const isMobile = window.innerWidth < 768;
+            const isInstalled = (window.matchMedia('(display-mode: standalone)').matches || navigator.standalone);
+            const dismissed = localStorage.getItem('pwaPromptAdminProdutosDismissed');
+            const prompt = document.getElementById('pwa-prompt');
+            const closeBtn = document.getElementById('pwa-close');
 
-            db.collection('produtos').orderBy('categoria').get().then(snap => {
-                lista.innerHTML = '';
-                const categoriasSet = new Set([]); // Começa vazio, só adiciona o que existe
-                
-                if (snap.empty) {
-                    lista.innerHTML = '<p class="text-center text-gray-400">Nenhum produto cadastrado.</p>';
+            if (isMobile && !isInstalled && !dismissed) {
+                prompt.classList.remove('hidden');
+
+                setTimeout(() => {
+                    prompt.classList.add('visible');
+                }, 100);
+
+                const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+                const installInstructions = document.getElementById('install-instructions');
+
+                if (isIOS) {
+                    installInstructions.innerHTML = 'Toque no ícone <svg class="w-4 h-4 inline-block transform translate-y-[2px]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg> e selecione "Adicionar à Tela de Início".';
+                } else {
+                    installInstructions.innerHTML = 'Toque no menu <span class="font-black text-lg align-top">...</span> ou <span class="font-black text-lg align-top">⁝</span> e selecione "Instalar Aplicativo".';
                 }
+
+                closeBtn.onclick = () => {
+                    prompt.classList.remove('visible');
+                    localStorage.setItem('pwaPromptAdminProdutosDismissed', 'true');
+                    setTimeout(() => prompt.classList.add('hidden'), 300);
+                };
+            }
+        }
+        // --- FIM LÓGICA PWA ---
+
+
+        // --- LÓGICA DE DADOS E RENDERIZAÇÃO ---
+        function carregarProdutos() {
+            const grid = document.getElementById('grid-produtos');
+            grid.innerHTML = '<div class="col-span-full text-center py-10 text-gray-400 animate-pulse">Carregando estoque...</div>';
+
+            db.collection('produtos').orderBy('categoria').onSnapshot(snap => {
+                produtosCache = [];
+                const categoriasSet = new Set();
 
                 snap.forEach(doc => {
                     const p = doc.data();
-                    categoriasSet.add(p.categoria);
-                    
-                    const dadosJson = JSON.stringify(p).replace(/"/g, '&quot;');
-                    const opacidade = p.ativo ? 'opacity-100' : 'opacity-50 bg-gray-100';
-                    const estoque = p.estoque_atual !== undefined ? p.estoque_atual : 'N/A';
-                    
-                    // Badges
-                    let tagsHtml = '';
-                    if(p.ativo) tagsHtml += '<span class="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded font-bold mr-1">Ativo</span>';
-                    else tagsHtml += '<span class="text-[10px] bg-red-100 text-red-700 px-2 py-0.5 rounded font-bold mr-1">Inativo</span>';
-                    
-                    if(p.tag_especial === 'do_dia') tagsHtml += '<span class="text-[10px] bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded font-bold mr-1">📅 Do Dia</span>';
-                    if(p.tag_especial === 'promo') tagsHtml += '<span class="text-[10px] bg-red-50 text-red-600 px-2 py-0.5 rounded font-bold mr-1">🏷️ Promo</span>';
-                    if(p.tag_especial === 'sazonal') tagsHtml += '<span class="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-bold mr-1">🎉 Festivo</span>';
-
-                    lista.innerHTML += `
-                        <div class="flex items-start bg-white p-3 rounded-lg shadow-sm mb-3 border border-gray-100 ${opacidade}">
-                            <img src="${p.imagem}" class="w-14 h-14 rounded object-cover bg-gray-200 flex-shrink-0">
-                            <div class="ml-3 flex-grow">
-                                <div class="flex flex-wrap items-center mb-1">
-                                    ${tagsHtml}
-                                    <span class="text-[10px] text-gray-400 ml-auto uppercase font-bold border border-gray-200 px-1 rounded">${p.categoria}</span>
-                                </div>
-                                <h3 class="font-bold text-gray-800 text-sm leading-tight">${p.nome}</h3>
-                                <p class="text-xs text-gray-600 mt-0.5">${formatarMoeda(p.preco)} | <span class="font-bold text-sm text-gray-700">Estoque: ${estoque}</span></p>
-                            </div>
-                            <div class="flex flex-col gap-2 ml-2">
-                                <button onclick="prepararEdicao('${doc.id}', ${dadosJson})" class="bg-blue-50 text-blue-600 p-1.5 rounded hover:bg-blue-100">✏️</button>
-                                <button onclick="deletar('${doc.id}')" class="bg-red-50 text-red-600 p-1.5 rounded hover:bg-red-100">🗑️</button>
-                            </div>
-                        </div>
-                    `;
+                    p.id = doc.id;
+                    produtosCache.push(p);
+                    if (p.categoria) categoriasSet.add(p.categoria); // Adiciona categorias, verifica se existe
                 });
 
-                // Atualiza o Select de Categorias com as existentes no banco
-                let optionsHtml = `<option value="" disabled selected>Selecione...</option>`;
-                categoriasSet.forEach(cat => optionsHtml += `<option value="${cat}">${cat}</option>`);
-                optionsHtml += `<option value="nova" class="font-bold text-blue-600">+ Criar Nova Categoria...</option>`;
-                selectCat.innerHTML = optionsHtml;
+                atualizarSelectCategorias(categoriasSet);
+                renderizarGrid(produtosCache);
+                atualizarStats(produtosCache);
             });
         }
 
-        window.prepararEdicao = (id, dados) => {
-            editandoId = id;
-            
-            // Configura Categoria
-            const select = document.getElementById('categoria-select');
-            let optionExists = [...select.options].some(o => o.value === dados.categoria);
-            if(!optionExists) {
-                const opt = document.createElement('option');
-                opt.value = dados.categoria;
-                opt.text = dados.categoria;
-                select.add(opt, 1);
+        function renderizarGrid(lista) {
+            const grid = document.getElementById('grid-produtos');
+            grid.innerHTML = '';
+
+            if (lista.length === 0) {
+                grid.innerHTML = `
+                    <div class="col-span-full flex flex-col items-center justify-center py-20 text-gray-400">
+                        <svg class="w-16 h-16 mb-4 opacity-20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+                        <p>Nenhum produto encontrado.</p>
+                        <button onclick="abrirDrawer()" class="mt-4 bg-brand-600 text-white px-4 py-2 rounded-lg font-bold shadow-lg hover:bg-brand-700">Criar Primeiro Produto</button>
+                    </div>`;
+                return;
             }
-            select.value = dados.categoria;
-            document.getElementById('categoria-nova').classList.add('hidden');
 
-            document.getElementById('tag-especial').value = dados.tag_especial || 'normal';
-            document.getElementById('nome').value = dados.nome;
-            document.getElementById('descricao').value = dados.descricao;
-            document.getElementById('preco').value = dados.preco;
-            document.getElementById('preco-promo').value = dados.preco_promo || '';
-            document.getElementById('imagem').value = dados.imagem;
-            document.getElementById('destaque').checked = dados.destaque;
-            document.getElementById('ativo').checked = dados.ativo !== undefined ? dados.ativo : true;
-            document.getElementById('estoque-atual').value = dados.estoque_atual !== undefined ? dados.estoque_atual : 0; // Carrega Estoque
+            // Garante que o grid use 1 coluna no mobile e 2+ no desktop
+            grid.classList.add('grid', 'grid-cols-1', 'sm:grid-cols-2', 'lg:grid-cols-3', 'xl:grid-cols-4', 'gap-6', 'pb-20');
 
-            document.getElementById('btn-salvar').innerText = "Atualizar Produto";
-            document.getElementById('btn-cancelar').classList.remove('hidden');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        };
+            lista.forEach(p => {
+                const dadosJson = encodeURIComponent(JSON.stringify(p));
+                const statusColor = p.ativo ? 'bg-green-100 text-green-700 border-green-200' : 'bg-red-50 text-red-600 border-red-100';
+                const statusText = p.ativo ? 'Ativo' : 'Inativo';
+                const estoqueBaixo = (p.estoque_atual !== undefined && p.estoque_atual < 5 && p.estoque_atual > 0) ? 'text-orange-600 font-bold' : (p.estoque_atual === 0 ? 'text-red-600 font-bold' : 'text-gray-600');
+                const estoqueTexto = p.estoque_atual !== undefined ? p.estoque_atual : 0;
+                const precoDisplay = p.preco_promo && p.preco_promo > 0 ? formatarMoeda(p.preco_promo) : formatarMoeda(p.preco);
+                const precoOriginal = p.preco_promo && p.preco_promo > 0 ? `<span class="text-xs text-gray-400 line-through mr-1">${formatarMoeda(p.preco)}</span>` : '';
 
-        window.limparFormulario = () => {
+                let tags = '';
+                if (p.tag_especial === 'do_dia') tags += '<span class="text-[10px] font-bold bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full border border-yellow-200">🌞 Dia</span>';
+                if (p.tag_especial === 'promo') tags += '<span class="text-[10px] font-bold bg-red-50 text-red-600 px-2 py-0.5 rounded-full border border-red-100">🏷️ Promoção</span>';
+                if (p.destaque) tags += '<span class="text-[10px] font-bold bg-purple-50 text-purple-600 px-2 py-0.5 rounded-full border border-purple-100">⭐ Destaque</span>';
+
+                grid.innerHTML += `
+                <div class="bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-shadow group flex flex-col relative transform hover:scale-[1.01] duration-300">
+                    
+                    <!-- Imagem e Badge Status -->
+                    <div class="relative h-48 bg-gray-100 overflow-hidden">
+                        <img src="${p.imagem}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" onerror="this.src='https://placehold.co/400x192?text=Sem+Imagem+Cadastrada'">
+                        <div class="absolute top-2 right-2 px-2 py-1 rounded-md text-[10px] font-bold uppercase border ${statusColor} shadow-sm backdrop-blur-sm bg-opacity-90">
+                            ${statusText}
+                        </div>
+                        <div class="absolute bottom-0 left-0 w-full p-2 flex gap-1 flex-wrap">
+                            ${tags}
+                        </div>
+                    </div>
+
+                    <!-- Corpo do Card -->
+                    <div class="p-4 flex-grow flex flex-col">
+                        <div class="flex justify-between items-start mb-1">
+                            <span class="text-xs font-bold text-gray-400 uppercase tracking-wide">${p.categoria || 'Sem Categoria'}</span>
+                            <span class="text-xs font-mono text-gray-300">#${p.id.substring(0, 4)}</span>
+                        </div>
+                        <h3 class="font-bold text-gray-900 text-xl leading-tight mb-2 line-clamp-1" title="${p.nome}">${p.nome}</h3>
+                        <p class="text-sm text-gray-500 line-clamp-2 flex-grow">${p.descricao}</p>
+                        
+                        <!-- Rodapé Card: Preço e Estoque -->
+                        <div class="flex items-end justify-between border-t border-gray-50 pt-3 mt-auto">
+                            <div>
+                                <p class="text-xs text-gray-400 font-medium mb-0.5">Preço</p>
+                                <p class="text-2xl font-black text-brand-600">${precoOriginal} ${precoDisplay}</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-xs text-gray-400 font-medium mb-0.5">Estoque</p>
+                                <p class="text-sm ${estoqueBaixo}">${estoqueTexto} <span class="text-[10px] font-normal text-gray-400">unid.</span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ações -->
+                    <div class="bg-gray-50 border-t border-gray-100 p-2 flex gap-2">
+                        <button onclick="abrirDrawer('${dadosJson}')" class="flex-1 bg-white border border-gray-200 text-gray-700 py-3 rounded-lg text-sm font-bold hover:bg-brand-50 hover:text-brand-600 hover:border-brand-200 transition shadow-sm flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+                            Editar
+                        </button>
+                        <button onclick="deletarProduto('${p.id}')" class="w-12 flex items-center justify-center bg-white border border-gray-200 text-red-500 rounded-lg hover:bg-red-50 hover:border-red-200 transition shadow-sm" title="Excluir">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                        </button>
+                    </div>
+                </div>`;
+            });
+        }
+
+        function filtrarProdutos() {
+            const termo = document.getElementById('search-input').value.toLowerCase();
+            const filtrados = produtosCache.filter(p =>
+                p.nome.toLowerCase().includes(termo) ||
+                (p.categoria && p.categoria.toLowerCase().includes(termo))
+            );
+            renderizarGrid(filtrados);
+        }
+
+        function atualizarSelectCategorias(setCategorias) {
+            const select = document.getElementById('categoria-select');
+            const valorAtual = select.value;
+
+            let html = `<option value="" disabled selected>Selecione uma categoria...</option>`;
+            setCategorias.forEach(cat => {
+                html += `<option value="${cat}">${cat}</option>`;
+            });
+            html += `<option value="nova" class="font-bold text-brand-600 bg-brand-50">+ Criar Nova Categoria</option>`;
+
+            select.innerHTML = html;
+            if (valorAtual && valorAtual !== 'nova' && setCategorias.has(valorAtual)) {
+                select.value = valorAtual;
+            }
+        }
+
+        function toggleNovaCategoria() {
+            const select = document.getElementById('categoria-select');
+            const input = document.getElementById('categoria-nova-container');
+            if (select.value === 'nova') {
+                input.classList.remove('hidden');
+                document.getElementById('categoria-nova').focus();
+            } else {
+                input.classList.add('hidden');
+            }
+        }
+
+        // --- DRAWER (Formulário Lateral/Inferior) ---
+
+        function abrirDrawer(dadosJson = null) {
+            const drawer = document.getElementById('drawer-form');
+            const overlay = document.getElementById('drawer-overlay');
+            const titulo = document.getElementById('drawer-title');
+
+            limparFormulario();
+
+            if (dadosJson) {
+                const p = JSON.parse(decodeURIComponent(dadosJson));
+                editandoId = p.id;
+                titulo.innerText = "Editar Produto";
+
+                // Preencher campos
+                document.getElementById('nome').value = p.nome || '';
+                document.getElementById('descricao').value = p.descricao || '';
+                document.getElementById('preco').value = p.preco || 0;
+                document.getElementById('preco-promo').value = p.preco_promo || '';
+                document.getElementById('imagem').value = p.imagem || '';
+                document.getElementById('preview-img').src = p.imagem || 'https://placehold.co/400?text=Preview';
+                document.getElementById('estoque-atual').value = p.estoque_atual !== undefined ? p.estoque_atual : 0;
+                document.getElementById('tag-especial').value = p.tag_especial || 'normal';
+                document.getElementById('ativo').checked = p.ativo !== undefined ? p.ativo : true;
+                document.getElementById('destaque').checked = p.destaque || false;
+
+                // Categoria
+                const select = document.getElementById('categoria-select');
+                let options = Array.from(select.options).map(o => o.value);
+                if (!options.includes(p.categoria)) {
+                    const opt = document.createElement('option');
+                    opt.value = p.categoria; opt.text = p.categoria;
+                    select.add(opt, 1);
+                }
+                select.value = p.categoria || '';
+                toggleNovaCategoria(); // Esconde o campo "nova categoria" se uma for selecionada
+            } else {
+                editandoId = null;
+                titulo.innerText = "Novo Produto";
+                document.getElementById('ativo').checked = true; // Padrão ativo
+                document.getElementById('preview-img').src = 'https://placehold.co/400?text=Preview';
+            }
+
+            // Animação Entrada (Visível)
+            drawer.classList.remove('hidden');
+            overlay.classList.remove('hidden');
+
+            setTimeout(() => {
+                overlay.classList.remove('opacity-0');
+                drawer.style.transform = 'none'; // Reseta a translação para exibir
+            }, 10);
+        }
+
+        function fecharDrawer() {
+            const drawer = document.getElementById('drawer-form');
+            const overlay = document.getElementById('drawer-overlay');
+
+            // Animação Saída (Volta para o estado escondido, definido no CSS)
+            drawer.style.transform = '';
+            overlay.classList.add('opacity-0');
+
+            setTimeout(() => {
+                drawer.classList.add('hidden');
+                overlay.classList.add('hidden');
+            }, 300);
+        }
+
+        function limparFormulario() {
             document.getElementById('form-produto').reset();
+            document.getElementById('categoria-nova-container').classList.add('hidden');
+            document.getElementById('categoria-select').value = ''; // Limpa a seleção
             editandoId = null;
-            document.getElementById('categoria-nova').classList.add('hidden');
-            document.getElementById('ativo').checked = true;
-            document.getElementById('estoque-atual').value = 0; // Reseta Estoque
-            document.getElementById('btn-salvar').innerText = "Cadastrar";
-            document.getElementById('btn-cancelar').classList.add('hidden');
-        };
+        }
 
-        window.deletar = (id) => {
-            if(confirm("Excluir permanentemente?")) db.collection('produtos').doc(id).delete().then(carregarProdutos);
-        };
+        async function salvarProduto(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-salvar');
+            const txtOriginal = btn.innerHTML;
+            btn.innerHTML = `<svg class="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
+            btn.disabled = true;
+
+            try {
+                // Lógica de Categoria
+                let categoria = document.getElementById('categoria-select').value;
+                if (categoria === 'nova') {
+                    const novaCat = document.getElementById('categoria-nova').value.trim();
+                    if (!novaCat) throw new Error("Digite o nome da nova categoria.");
+                    categoria = novaCat.charAt(0).toUpperCase() + novaCat.slice(1); // Capitaliza
+                }
+                if (!categoria) throw new Error("Selecione uma categoria.");
+
+                const preco = parseFloat(document.getElementById('preco').value) || 0;
+                if (preco <= 0) throw new Error("O preço deve ser maior que zero.");
+
+                const produto = {
+                    nome: document.getElementById('nome').value.trim(),
+                    descricao: document.getElementById('descricao').value.trim(),
+                    categoria: categoria,
+                    preco: preco,
+                    preco_promo: parseFloat(document.getElementById('preco-promo').value) || 0,
+                    estoque_atual: parseInt(document.getElementById('estoque-atual').value) || 0,
+                    imagem: document.getElementById('imagem').value || 'https://placehold.co/400x192?text=Sem+Imagem+Cadastrada',
+                    tag_especial: document.getElementById('tag-especial').value,
+                    ativo: document.getElementById('ativo').checked,
+                    destaque: document.getElementById('destaque').checked,
+                    data_atualizacao: new Date().toISOString()
+                };
+
+                if (editandoId) {
+                    await db.collection('produtos').doc(editandoId).update(produto);
+                    mostrarToast("Produto atualizado!", "sucesso");
+                } else {
+                    produto.data_criacao = new Date().toISOString();
+                    await db.collection('produtos').add(produto);
+                    mostrarToast("Produto criado!", "sucesso");
+                }
+                fecharDrawer();
+
+            } catch (erro) {
+                alert("Erro ao salvar: " + erro.message);
+            } finally {
+                btn.innerHTML = txtOriginal;
+                btn.disabled = false;
+            }
+        }
+
+        async function deletarProduto(id) {
+            if (confirm("ATENÇÃO: Tem certeza que deseja excluir este produto permanentemente?")) {
+                try {
+                    await db.collection('produtos').doc(id).delete();
+                    mostrarToast("Produto removido.", "erro");
+                } catch (e) { alert("Erro ao deletar: " + e.message); }
+            }
+        }
+
+        // --- HELPERS DE STATS ---
+        function atualizarStats(lista) {
+            document.getElementById('total-produtos').innerText = lista.length;
+            document.getElementById('total-ativos').innerText = lista.filter(i => i.ativo).length;
+            document.getElementById('estoque-baixo').innerText = lista.filter(i => i.estoque_atual > 0 && i.estoque_atual < 5).length;
+            document.getElementById('estoque-esgotado').innerText = lista.filter(i => i.estoque_atual === 0).length;
+        }
+
+        function mostrarToast(msg, tipo = 'sucesso') {
+            const t = document.getElementById('toast');
+            const cor = tipo === 'sucesso' ? 'bg-gray-900' : 'bg-red-600';
+            const icone = tipo === 'sucesso' ? '✓' : '🗑️';
+            t.className = `fixed bottom-5 left-1/2 transform -translate-x-1/2 px-6 py-3 rounded-full text-white font-bold shadow-2xl z-[100] flex items-center gap-2 transition-all duration-500 translate-y-20 opacity-0 ${cor}`;
+            t.innerHTML = `<span>${icone}</span> ${msg}`;
+            t.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => t.classList.add('translate-y-20', 'opacity-0'), 3000);
+        }
     </script>
 </head>
-<body class="bg-gray-50 font-sans pb-10">
-    <header class="bg-white shadow p-4 sticky top-0 z-10 flex justify-between items-center">
-        <h1 class="font-bold text-pink-600 text-lg">Admin Loja</h1>
-        <nav class="flex gap-4">
-            <!-- Link para Pedidos -->
-            <a href="admin-pedidos.html" target="_blank" class="text-sm font-bold text-gray-500 hover:text-pink-600">Ver Pedidos ↗</a>
-            <!-- Link para Loja -->
-            <a href="index.html" target="_blank" class="text-sm font-bold text-gray-500 hover:text-pink-600">Ver Loja ↗</a>
+
+<body class="bg-gray-50 font-sans text-gray-800 h-screen flex flex-col overflow-hidden">
+
+    <!-- HEADER FIXO (Topo) -->
+    <header class="glass-header h-16 flex items-center justify-between px-4 md:px-8 z-30 flex-shrink-0">
+        <div class="flex items-center gap-3">
+            <div class="bg-brand-600 text-white p-1.5 rounded-lg">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                </svg>
+            </div>
+            <h1 class="font-bold text-gray-800 text-lg tracking-tight">Admin <span class="text-gray-400 mx-1">/</span>
+                Produtos</h1>
+        </div>
+
+        <nav class="flex gap-2 md:gap-4">
+            <a href="https://imgur.com/upload" target="_blank"
+                class="px-3 py-2 text-sm font-bold text-gray-500 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition flex items-center gap-2">
+                <span class="hidden md:inline">Upar Imagens</span>
+
+                <svg class="w-4 h-4 md:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+            </a>
+            <a href="admin-clientes.html"
+                class="px-3 py-2 text-sm font-bold text-gray-500 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition flex items-center gap-2">
+                <span class="hidden md:inline">Clientes</span>
+                <svg class="w-4 h-4 md:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+            </a>
+            <a href="admin-pedidos.html"
+                class="px-3 py-2 text-sm font-bold text-gray-500 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition flex items-center gap-2">
+                <span class="hidden md:inline">Pedidos</span>
+                <svg class="w-4 h-4 md:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+            </a>
+            <a href="admin-custos.html"
+                class="px-3 py-2 text-sm font-bold text-gray-500 hover:text-brand-600 hover:bg-brand-50 rounded-lg transition flex items-center gap-2">
+                <span class="hidden md:inline">Custos</span>
+                <svg class="w-4 h-4 md:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+            </a>
+            <a href="index.html" target="_blank"
+                class="hidden md:flex px-3 py-2 text-sm font-bold text-brand-600 bg-brand-50 border border-brand-100 rounded-lg hover:bg-brand-100 transition items-center gap-2">
+                <span>Ver Loja</span>
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+            </a>
+            
         </nav>
     </header>
 
-    <main class="container mx-auto p-4 max-w-2xl">
-        <!-- Form Panel -->
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 mb-8">
-            <div class="flex justify-between items-center mb-6">
-                <h2 class="font-bold text-gray-800 text-lg">Cadastrar Item</h2>
-                <button id="btn-cancelar" onclick="limparFormulario()" class="hidden text-red-500 text-sm font-medium hover:underline">Cancelar Edição</button>
+    <!-- TOOLBAR, STATS E CONTROLES DE BUSCA -->
+    <div
+        class="bg-white border-b border-gray-200 px-4 md:px-8 pt-4 pb-2 flex flex-col md:flex-row gap-4 justify-between items-center flex-shrink-0">
+
+        <!-- Stats Rápidos (Cards no Desktop, Compacto no Mobile) -->
+        <div
+            class="grid grid-cols-2 md:grid-cols-4 w-full md:w-auto gap-4 text-sm border-b md:border-0 border-gray-100 pb-4 md:pb-0">
+            <div class="text-center md:text-left bg-gray-50 p-2 rounded-lg border border-gray-100">
+                <p class="text-gray-400 text-xs font-bold uppercase">Total</p>
+                <p id="total-produtos" class="text-xl font-black text-gray-800">0</p>
             </div>
-            
-            <form id="form-produto" class="space-y-5">
-                
-                <!-- Status e Seção Especial -->
-                <div class="grid grid-cols-2 gap-4 bg-gray-50 p-3 rounded-lg border border-gray-200">
+            <div class="text-center md:text-left bg-green-50 p-2 rounded-lg border border-green-100">
+                <p class="text-green-800 text-xs font-bold uppercase">Ativos</p>
+                <p id="total-ativos" class="text-xl font-black text-green-600">0</p>
+            </div>
+            <div class="text-center md:text-left bg-orange-50 p-2 rounded-lg border border-orange-100">
+                <p class="text-orange-800 text-xs font-bold uppercase">Estoque Baixo</p>
+                <p id="estoque-baixo" class="text-xl font-black text-orange-600">0</p>
+            </div>
+            <div class="text-center md:text-left bg-red-50 p-2 rounded-lg border border-red-100">
+                <p class="text-red-800 text-xs font-bold uppercase">Esgotado</p>
+                <p id="estoque-esgotado" class="text-xl font-black text-red-600">0</p>
+            </div>
+        </div>
+
+        <!-- Controles de Ação -->
+        <div class="flex w-full md:w-auto gap-3 py-2">
+            <div class="relative flex-grow md:w-64">
+                <svg class="absolute left-3 top-3.5 w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+                <input type="text" id="search-input" placeholder="Buscar produto ou categoria..."
+                    class="w-full pl-10 pr-4 py-3 bg-gray-100 border-transparent focus:bg-white focus:border-brand-500 focus:ring-0 rounded-xl text-sm transition font-medium">
+            </div>
+            <button onclick="abrirDrawer()"
+                class="bg-gray-900 text-white px-5 py-3 rounded-xl font-bold text-sm hover:bg-gray-800 shadow-lg shadow-gray-300/50 transition active:scale-95 whitespace-nowrap flex items-center justify-center gap-2">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                <span class="hidden md:inline">Novo Produto</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- GRID DE PRODUTOS -->
+    <main class="flex-grow overflow-y-auto p-4 md:p-8 bg-gray-50">
+        <div id="grid-produtos" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 pb-20">
+            <!-- Cards injetados via JS -->
+        </div>
+    </main>
+
+    <!-- DRAWER (Formulário Lateral/Inferior) -->
+    <div id="drawer-overlay" onclick="fecharDrawer()"
+        class="fixed inset-0 bg-black/40 backdrop-blur-sm z-40 hidden opacity-0 transition-opacity duration-300"></div>
+
+    <!-- 
+         Classe inicial: hidden (escondido), transform translate-y-full (escondido para mobile) e md:translate-x-full (escondido para desktop).
+         O JS remove 'hidden' e força style.transform = 'none' para exibir.
+    -->
+    <div id="drawer-form" class="fixed z-50 bg-white shadow-2xl transition-transform duration-300 flex flex-col hidden
+        bottom-0 left-0 right-0 w-full h-[90vh] rounded-t-2xl md:h-full
+        md:inset-y-0 md:right-0 md:left-auto md:w-[480px] md:rounded-l-2xl md:rounded-tr-none">
+
+        <!-- Header Drawer -->
+        <div class="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-white flex-shrink-0">
+            <h2 id="drawer-title" class="text-xl font-serif font-bold text-gray-900">Novo Produto</h2>
+            <button onclick="fecharDrawer()"
+                class="p-2 text-gray-400 hover:text-gray-600 bg-gray-50 rounded-full transition">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Form Content -->
+        <div class="flex-grow overflow-y-auto p-6 space-y-6">
+            <form id="form-produto" class="space-y-6">
+
+                <!-- Preview Imagem -->
+                <div class="flex justify-center">
+                    <div
+                        class="w-40 h-32 rounded-xl bg-gray-100 border border-gray-200 overflow-hidden relative shadow-inner">
+                        <img id="preview-img" src="https://placehold.co/400?text=Preview"
+                            class="w-full h-full object-cover">
+                        <div class="absolute bottom-0 w-full bg-black/50 text-white text-[10px] text-center py-1">
+                            Preview</div>
+                    </div>
+                </div>
+
+                <!-- Toggle Ativo -->
+                <div class="flex justify-between items-center bg-gray-50 p-4 rounded-xl border border-gray-100">
+                    <span class="font-bold text-gray-700 text-sm">Produto Visível na Loja?</span>
+                    <div
+                        class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                        <input type="checkbox" name="ativo" id="ativo"
+                            class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 ease-in-out left-0" />
+                        <label for="ativo"
+                            class="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer transition-colors duration-300"></label>
+                    </div>
+                </div>
+
+                <!-- Campos Texto -->
+                <div class="grid grid-cols-1 gap-4">
                     <div>
-                        <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">Status</label>
-                        <label class="flex items-center cursor-pointer">
-                            <div class="relative">
-                                <input type="checkbox" id="ativo" class="sr-only peer" checked>
-                                <div class="w-9 h-5 bg-gray-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-green-500"></div>
-                            </div>
-                            <span class="ml-2 text-sm font-bold text-gray-700">Visível</span>
-                        </label>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Nome do Produto</label>
+                        <input type="text" id="nome" required
+                            class="w-full p-3 border border-gray-200 rounded-xl focus:border-brand-500 focus:ring-0 outline-none font-bold text-gray-800"
+                            placeholder="Ex: Brownie Tradicional">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Descrição</label>
+                        <textarea id="descricao" rows="3"
+                            class="w-full p-3 border border-gray-200 rounded-xl focus:border-brand-500 focus:ring-0 outline-none text-sm"
+                            placeholder="Detalhes deliciosos..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Categoria -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Categoria</label>
+                    <select id="categoria-select"
+                        class="w-full p-3 border border-gray-200 rounded-xl bg-white focus:border-brand-500 outline-none font-medium text-gray-700">
+                        <option value="" disabled selected>Carregando...</option>
+                    </select>
+
+                    <div id="categoria-nova-container" class="hidden mt-2 animate-pulse">
+                        <input type="text" id="categoria-nova"
+                            class="w-full p-3 border-2 border-brand-100 bg-brand-50 rounded-xl focus:border-brand-500 outline-none text-brand-800 placeholder-brand-300 font-bold"
+                            placeholder="Nome da nova categoria (Ex: Vegano)">
+                    </div>
+                </div>
+
+                <!-- Preços e Estoque -->
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Preço Base (R$)</label>
+                        <input type="number" id="preco" step="0.01" required
+                            class="w-full p-3 border border-gray-200 rounded-xl focus:border-brand-500 outline-none font-bold text-gray-800"
+                            placeholder="0.00">
                     </div>
                     <div>
-                         <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">Seção Especial</label>
-                         <select id="tag-especial" class="w-full p-1 bg-white border rounded text-sm font-medium focus:border-pink-500">
-                             <option value="normal">Nenhuma (Padrão)</option>
-                             <option value="do_dia">📅 Produto do Dia</option>
-                             <option value="promo">🏷️ Promoção</option>
-                             <option value="sazonal">🎉 Festividade/Limitado</option>
-                         </select>
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Estoque Atual</label>
+                        <input type="number" id="estoque-atual" required
+                            class="w-full p-3 border border-gray-200 rounded-xl focus:border-brand-500 outline-none font-bold text-gray-800"
+                            placeholder="0">
                     </div>
                 </div>
 
-                <!-- Categoria Dinâmica -->
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">Categoria</label>
-                    <div class="flex gap-2">
-                        <select id="categoria-select" class="w-full p-3 border rounded-lg bg-white focus:border-pink-500 outline-none" required>
-                            <option value="" disabled selected>Carregando...</option>
-                        </select>
+                <!-- Opções Avançadas (Collapsible) -->
+                <details
+                    class="group bg-gray-50 rounded-xl border border-gray-100 open:bg-white open:shadow-sm transition-all">
+                    <summary
+                        class="list-none flex justify-between items-center p-4 cursor-pointer font-bold text-sm text-gray-600 group-open:text-brand-600">
+                        Opções Avançadas (Promoção, Imagem, Tags)
+                        <svg class="w-4 h-4 transition-transform group-open:rotate-180" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </summary>
+                    <div class="p-4 pt-0 space-y-4 border-t border-gray-100 mt-2">
+
+                        <div class="mt-4">
+                            <label class="block text-xs font-bold text-red-500 uppercase mb-1 ml-1">Preço Promocional
+                                (Opcional)</label>
+                            <input type="number" id="preco-promo" step="0.01"
+                                class="w-full p-3 border border-red-100 bg-red-50 rounded-xl text-red-600 placeholder-red-200 font-bold"
+                                placeholder="0.00">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">URL da
+                                Imagem</label>
+                            <input type="text" id="imagem"
+                                class="w-full p-3 border border-gray-200 rounded-xl text-xs text-gray-500 focus:border-brand-500 outline-none"
+                                placeholder="https://...">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Tag
+                                Especial</label>
+                            <select id="tag-especial" class="w-full p-3 border border-gray-200 rounded-xl text-sm">
+                                <option value="normal">Nenhuma (Padrão)</option>
+                                <option value="do_dia">📅 Destaque do Dia</option>
+                                <option value="promo">🏷️ Promoção</option>
+                            </select>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <input type="checkbox" id="destaque"
+                                class="w-5 h-5 rounded border-gray-300 text-brand-600 focus:ring-brand-500">
+                            <label for="destaque" class="text-sm font-bold text-gray-600">Exibir na vitrine de
+                                Destaques</label>
+                        </div>
                     </div>
-                    <input type="text" id="categoria-nova" class="hidden w-full p-3 mt-2 border border-blue-300 bg-blue-50 rounded-lg focus:ring-2 focus:ring-blue-200 outline-none" placeholder="Digite o nome da nova categoria...">
-                </div>
+                </details>
 
-                <!-- Detalhes -->
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">Nome do Produto</label>
-                    <input type="text" id="nome" class="w-full p-3 border rounded-lg focus:border-pink-500 outline-none" required placeholder="Ex: Brownie Ninho">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">Descrição</label>
-                    <textarea id="descricao" class="w-full p-3 border rounded-lg focus:border-pink-500 outline-none" rows="2" required></textarea>
-                </div>
-
-                <!-- Estoque e Preços -->
-                <div class="grid grid-cols-3 gap-4">
-                     <div>
-                        <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">Estoque Atual</label>
-                        <input type="number" id="estoque-atual" class="w-full p-3 border rounded-lg font-bold text-gray-800" value="0" min="0" required placeholder="0">
-                     </div>
-                    <div>
-                         <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">Preço Real (R$)</label>
-                         <input type="number" id="preco" step="0.01" class="w-full p-3 border rounded-lg font-bold text-gray-800" required placeholder="0.00">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-red-500 mb-1 uppercase">Preço Promo (Opcional)</label>
-                        <input type="number" id="preco-promo" step="0.01" class="w-full p-3 border border-red-200 bg-red-50 rounded-lg text-red-600 placeholder-red-200" placeholder="0.00">
-                   </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 mb-1 uppercase">Link da Imagem</label>
-                    <input type="text" id="imagem" class="w-full p-3 border rounded-lg focus:border-pink-500 outline-none text-sm" placeholder="https://...">
-                </div>
-
-                <div class="flex items-center pt-2">
-                    <input type="checkbox" id="destaque" class="w-5 h-5 text-pink-600 rounded focus:ring-pink-500">
-                    <label for="destaque" class="ml-2 text-sm font-bold text-gray-700">Fixar em "Favoritos" ⭐</label>
-                </div>
-
-                <button type="submit" id="btn-salvar" class="w-full bg-gray-900 text-white font-bold py-4 rounded-xl hover:bg-gray-800 shadow-lg transition transform active:scale-95">
-                    Cadastrar
-                </button>
             </form>
         </div>
 
-        <h3 class="font-bold text-gray-500 uppercase text-xs mb-4 tracking-wider">Inventário Atual</h3>
-        <div id="lista-produtos"></div>
-    </main>
+        <!-- Footer Drawer (Botão Salvar Fixo) -->
+        <div class="p-6 border-t border-gray-100 bg-white pb-safe-area flex-shrink-0">
+            <button form="form-produto" type="submit" id="btn-salvar"
+                class="w-full bg-brand-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-brand-200 hover:bg-brand-700 active:scale-95 transition flex justify-center items-center">
+                Salvar Produto
+            </button>
+        </div>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toast"></div>
+
+    <!-- PWA PROMPT (Mobile Only) -->
+    <div id="pwa-prompt"
+        class="fixed bottom-0 left-0 right-0 p-4 bg-gray-900 text-white z-50 hidden shadow-[0_0_20px_rgba(0,0,0,0.5)]">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <!-- Ícone simulando app -->
+                <div class="w-10 h-10 bg-pink-600 rounded-lg flex items-center justify-center shadow-md">
+                    <svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                    </svg>
+                </div>
+                <div>
+                    <p class="font-bold text-sm">Instalar Gestão de Produtos</p>
+                    <p id="install-instructions" class="text-xs text-gray-300 mt-0.5">Toque no botão e instale na sua
+                        tela inicial.</p>
+                </div>
+            </div>
+            <button id="pwa-close" class="text-gray-400 hover:text-white p-1 rounded-full">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
 </body>
+
 </html>

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#db2777">
+    <title>Fazer Encomenda | Delicia D'Brownie</title>
+    
+    <!-- FAVICON -->
+    <link rel="icon" type="image/png" href="logo.png">
+
+    <!-- TAILWIND CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- FIREBASE -->
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
+
+    <!-- FONTES -->
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;800&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { 
+                        sans: ['DM Sans', 'sans-serif'], 
+                        serif: ['Playfair Display', 'serif'] 
+                    },
+                    colors: { 
+                        brand: { 50: '#fff1f2', 100: '#ffe4e6', 500: '#ec4899', 600: '#db2777', 800: '#9d174d' } 
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        .glass-effect { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(0,0,0,0.05); }
+        .pb-safe-area { padding-bottom: env(safe-area-inset-bottom); }
+        /* Checkbox personalizado */
+        .checkbox-custom:checked { background-color: #db2777; border-color: #db2777; }
+        .checkbox-custom:checked + div { color: #db2777; font-weight: bold; }
+    </style>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCM9tMvnRV-o7X66euCBKuLmuz-kIrClWY",
+            authDomain: "renata-26079.firebaseapp.com",
+            projectId: "renata-26079",
+            storageBucket: "renata-26079.firebasestorage.app",
+            messagingSenderId: "995787482442",
+            appId: "1:995787482442:web:fdbca404a0e251cc278db3"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        document.addEventListener('DOMContentLoaded', () => {
+            auth.onAuthStateChanged(user => { if (!user) auth.signInAnonymously(); });
+            verificarLogin();
+            
+            // Define data mínima como hoje
+            const hoje = new Date().toISOString().split('T')[0];
+            document.getElementById('data-evento').min = hoje;
+        });
+
+        function verificarLogin() {
+            const nome = localStorage.getItem('userName');
+            const fone = localStorage.getItem('userPhone');
+
+            if (!nome || !fone) {
+                document.getElementById('form-container').innerHTML = `
+                    <div class="text-center py-10">
+                        <div class="w-20 h-20 bg-brand-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-10 h-10 text-brand-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                        </div>
+                        <h2 class="text-xl font-bold text-gray-900 mb-2">Identifique-se</h2>
+                        <p class="text-gray-500 mb-6 px-6">Para solicitar um orçamento, precisamos saber quem você é.</p>
+                        <a href="perfil.html" class="bg-brand-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg hover:bg-brand-700 transition">Fazer Login</a>
+                    </div>
+                `;
+            } else {
+                document.getElementById('cliente-nome').value = nome;
+                document.getElementById('cliente-fone').value = fone;
+                document.getElementById('msg-ola').innerText = `Olá, ${nome.split(' ')[0]}! Vamos planejar seu evento?`;
+            }
+        }
+
+        async function enviarEncomenda(e) {
+            e.preventDefault();
+            const btn = document.getElementById('btn-enviar');
+            const originalText = btn.innerText;
+            
+            // Coleta dados
+            const dataEvento = document.getElementById('data-evento').value;
+            const qtdPessoas = document.getElementById('qtd-pessoas').value;
+            const descricao = document.getElementById('descricao').value;
+            
+            // Coleta checkbox
+            const tipos = [];
+            document.querySelectorAll('input[name="tipo"]:checked').forEach(el => tipos.push(el.value));
+
+            if (!dataEvento || !descricao || tipos.length === 0) {
+                alert("Por favor, preencha a data, selecione pelo menos um tipo e descreva o que precisa.");
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = "Enviando...";
+
+            const pedido = {
+                tipo_pedido: 'encomenda', // Flag importante para o admin separar
+                status: 'Pendente Aprovação',
+                cliente_nome: localStorage.getItem('userName'),
+                cliente_telefone: localStorage.getItem('userPhone'),
+                cliente_telefone_limpo: localStorage.getItem('userPhone').replace(/\D/g, ''),
+                data_solicitacao: new Date().toISOString(),
+                detalhes: {
+                    data_evento: dataEvento,
+                    qtd_pessoas: qtdPessoas,
+                    tipos_itens: tipos,
+                    descricao: descricao
+                }
+            };
+
+            try {
+                await db.collection('encomendas').add(pedido);
+                
+                // Feedback visual
+                document.getElementById('form-container').innerHTML = `
+                    <div class="text-center py-10 animate-pulse">
+                        <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-10 h-10 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                        </div>
+                        <h2 class="text-2xl font-serif font-bold text-gray-900 mb-2">Solicitação Enviada!</h2>
+                        <p class="text-gray-500 mb-6 px-4">Recebemos seu pedido de orçamento. A loja analisará e entrará em contato pelo WhatsApp em breve.</p>
+                        <a href="pedidos.html" class="text-brand-600 font-bold underline">Acompanhar meus pedidos</a>
+                    </div>
+                `;
+
+                // Notifica loja via Zap (Opcional)
+                /*
+                const msg = `*NOVA ENCOMENDA*\nCliente: ${pedido.cliente_nome}\nData Evento: ${dataEvento.split('-').reverse().join('/')}\nItens: ${tipos.join(', ')}`;
+                window.open(`https://wa.me/5541992480604?text=${encodeURIComponent(msg)}`, '_blank');
+                */
+
+            } catch (error) {
+                console.error(error);
+                alert("Erro ao enviar. Tente novamente.");
+                btn.disabled = false;
+                btn.innerText = originalText;
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-50 font-sans text-gray-800 pb-24 md:pb-0 min-h-screen flex flex-col">
+
+    <!-- HEADER -->
+    <header class="fixed top-0 w-full z-40 glass-effect border-b border-gray-100 shadow-sm">
+        <div class="container mx-auto px-4 h-16 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <a href="index.html" class="p-1 rounded-full hover:bg-gray-100 transition">
+                    <svg class="w-6 h-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                </a>
+                <h1 class="text-xl font-serif font-black text-gray-900 tracking-tight">Encomendas</h1>
+            </div>
+        </div>
+    </header>
+
+    <!-- CONTEÚDO -->
+    <main class="flex-grow pt-20 px-4 container mx-auto max-w-lg">
+        
+        <div class="mb-6">
+            <h2 class="text-2xl font-serif font-bold text-brand-600 mb-1">Faça sua festa</h2>
+            <p class="text-sm text-gray-500" id="msg-ola">Solicite um orçamento para eventos.</p>
+        </div>
+
+        <div id="form-container" class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <form onsubmit="enviarEncomenda(event)" class="space-y-5">
+                
+                <input type="hidden" id="cliente-nome">
+                <input type="hidden" id="cliente-fone">
+
+                <!-- Data do Evento -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase mb-1 ml-1">Data do Evento</label>
+                    <input type="date" id="data-evento" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-brand-500 outline-none font-bold text-gray-700">
+                </div>
+
+                <!-- Qtd Pessoas -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase mb-1 ml-1">Número de Convidados (Aprox.)</label>
+                    <input type="number" id="qtd-pessoas" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-brand-500 outline-none font-bold text-gray-700" placeholder="Ex: 50">
+                </div>
+
+                <!-- Checkboxes -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase mb-2 ml-1">O que você precisa?</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <label class="flex items-center p-3 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition">
+                            <input type="checkbox" name="tipo" value="Doces" class="checkbox-custom w-5 h-5 rounded border-gray-300 text-brand-600 focus:ring-brand-500 transition">
+                            <div class="ml-3 text-sm text-gray-600">Doces</div>
+                        </label>
+                        <label class="flex items-center p-3 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition">
+                            <input type="checkbox" name="tipo" value="Salgados" class="checkbox-custom w-5 h-5 rounded border-gray-300 text-brand-600 focus:ring-brand-500 transition">
+                            <div class="ml-3 text-sm text-gray-600">Salgados</div>
+                        </label>
+                        <label class="flex items-center p-3 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition">
+                            <input type="checkbox" name="tipo" value="Bolos" class="checkbox-custom w-5 h-5 rounded border-gray-300 text-brand-600 focus:ring-brand-500 transition">
+                            <div class="ml-3 text-sm text-gray-600">Bolos</div>
+                        </label>
+                        <label class="flex items-center p-3 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition">
+                            <input type="checkbox" name="tipo" value="Kit Festa" class="checkbox-custom w-5 h-5 rounded border-gray-300 text-brand-600 focus:ring-brand-500 transition">
+                            <div class="ml-3 text-sm text-gray-600">Kit Festa</div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Descrição -->
+                <div>
+                    <label class="block text-xs font-bold text-gray-400 uppercase mb-1 ml-1">Detalhes do Pedido</label>
+                    <textarea id="descricao" rows="4" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-brand-500 outline-none text-sm text-gray-700" placeholder="Descreva os sabores, preferências ou dúvidas..."></textarea>
+                </div>
+
+                <!-- Botão -->
+                <button type="submit" id="btn-enviar" class="w-full bg-brand-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-brand-200 hover:bg-brand-700 active:scale-95 transition">
+                    Enviar Solicitação
+                </button>
+
+            </form>
+        </div>
+
+    </main>
+
+    <!-- FOOTER MOBILE (Igual ao Index, mas com Encomendas ativo se quiser, ou padrão) -->
+    <nav class="md:hidden fixed bottom-0 w-full bg-white border-t border-gray-100 z-30 pb-safe-area shadow-[0_-5px_20px_rgba(0,0,0,0.03)]">
+        <div class="flex justify-around items-center h-16">
+            <a href="index.html" class="flex flex-col items-center text-gray-400 hover:text-brand-600 transition-colors active:scale-90">
+                <svg class="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                <span class="text-[10px] font-medium">Início</span>
+            </a>
+            
+            <!-- Botão Encomendas (Destaque) -->
+            <a href="encomendas.html" class="flex flex-col items-center text-brand-600 active:scale-90">
+                <svg class="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                <span class="text-[10px] font-bold">Encomendas</span>
+            </a>
+
+            <a href="pedidos.html" class="flex flex-col items-center text-gray-400 hover:text-brand-600 transition-colors active:scale-90">
+                <svg class="w-6 h-6 mb-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                <span class="text-[10px] font-medium">Pedidos</span>
+            </a>
+        </div>
+    </nav>
+
+</body>
+</html>

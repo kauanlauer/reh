@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1f2937">
+    <title>Gestão de Custos | Admin</title>
+
+    <!-- FAVICON -->
+    <link rel="icon" type="image/png" href="logo.png">
+
+    <!-- TAILWIND CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- FIREBASE (SDKs) -->
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
+
+    <!-- FONTES & ÍCONES -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;800&display=swap"
+        rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['DM Sans', 'sans-serif'], serif: ['Playfair Display', 'serif'] },
+                    colors: {
+                        brand: { 50: '#fff1f2', 100: '#ffe4e6', 500: '#ec4899', 600: '#db2777', 800: '#9d174d', 900: '#831843' }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        /* Ajustes Visuais */
+        body {
+            -webkit-tap-highlight-color: transparent;
+            background-color: #f9fafb;
+        }
+
+        ::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+
+        .glass-header {
+            background: rgba(255, 255, 255, 0.98);
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+
+        .pb-safe {
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        /* Animações */
+        .slide-in-right {
+            animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .fade-in {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .spin {
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+            }
+
+            to {
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes spin {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body class="h-screen flex flex-col overflow-hidden">
+
+    <!-- TELA 1: LISTA (PADRÃO ADMIN) -->
+    <div id="screen-list" class="flex-grow flex flex-col h-full bg-gray-50">
+
+        <!-- HEADER -->
+        <header class="glass-header h-16 flex items-center justify-between px-4 z-30 flex-shrink-0">
+            <div class="flex items-center gap-3">
+                <div
+                    class="bg-brand-600 text-white w-8 h-8 rounded-lg flex items-center justify-center shadow-brand-200 shadow-md">
+                    <i class="ri-calculator-line text-lg"></i>
+                </div>
+                <h1 class="font-bold text-gray-800 text-lg tracking-tight">Custos</h1>
+            </div>
+            <nav class="flex gap-3">
+                <a href="admin-produtos.html" class="text-sm font-bold text-gray-500 hover:text-brand-600">Produtos</a>
+                <a href="admin-pedidos.html" class="text-sm font-bold text-gray-500 hover:text-brand-600">Pedidos</a>
+                <a href="index.html" target="_blank"
+                    class="w-8 h-8 bg-brand-50 text-brand-600 rounded-full flex items-center justify-center">
+                    <i class="ri-store-2-line"></i>
+                </a>
+                <a href="guia-custos.html" target="_blank"
+                    class="w-8 h-8 bg-brand-50 text-brand-600 rounded-full flex items-center justify-center"
+                    title="Ajuda">
+                    <i class="ri-question-line"></i>
+                </a>
+
+            </nav>
+        </header>
+
+        <!-- SEARCH -->
+        <div class="px-4 py-3 bg-white border-b border-gray-100 flex-shrink-0 z-20">
+            <div class="relative">
+                <i class="ri-search-line absolute left-3 top-3 text-gray-400"></i>
+                <input type="text" id="search-input" placeholder="Buscar produto para calcular..."
+                    class="w-full pl-10 pr-4 py-2.5 bg-gray-100 border-transparent focus:bg-white focus:border-brand-500 focus:ring-1 ring-brand-200 rounded-xl text-sm font-bold transition-all outline-none">
+            </div>
+            <div class="flex justify-between items-center mt-2 px-1">
+                <span class="text-[10px] font-bold text-gray-400 uppercase">Produtos Cadastrados</span>
+                <span id="total-produtos"
+                    class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs font-black">0</span>
+            </div>
+        </div>
+
+        <!-- LISTA DE PRODUTOS -->
+        <main id="lista-produtos" class="flex-grow overflow-y-auto p-4 space-y-3 pb-safe">
+            <!-- Renderizado via JS -->
+        </main>
+    </div>
+
+    <!-- TELA 2: CALCULADORA (OVERLAY) -->
+    <div id="screen-detail" class="fixed inset-0 bg-gray-100 z-50 flex flex-col hidden">
+
+        <!-- TOP BAR -->
+        <div
+            class="bg-white px-4 h-16 border-b border-gray-200 flex justify-between items-center shadow-sm flex-shrink-0 z-30">
+            <button onclick="fecharCalculadora()"
+                class="w-10 h-10 -ml-2 flex items-center justify-center text-gray-500 hover:text-brand-600">
+                <i class="ri-arrow-left-s-line text-2xl"></i>
+            </button>
+            <span class="font-bold text-gray-800">Calculadora de Lucro</span>
+            <button id="btn-salvar" onclick="salvarFichaTecnica()"
+                class="bg-gray-900 text-white px-4 py-2 rounded-lg text-xs font-bold shadow-lg flex items-center gap-2 active:scale-95 transition-transform">
+                <i class="ri-save-line"></i> Salvar
+            </button>
+        </div>
+
+        <!-- CONTEÚDO SCROLL -->
+        <div id="scroll-content" class="flex-grow overflow-y-auto pb-32">
+
+            <!-- INFO PRODUTO & SIMULADOR -->
+            <div class="bg-white p-6 border-b border-gray-200 shadow-sm mb-4 relative">
+                <div class="flex gap-4 items-center">
+                    <img id="detail-img" src=""
+                        class="w-16 h-16 rounded-xl bg-gray-100 object-cover border border-gray-200 shadow-sm">
+                    <div class="flex-1">
+                        <h2 id="detail-nome" class="font-serif font-black text-xl text-gray-900 leading-tight mb-1">Nome
+                            Produto</h2>
+                        <div
+                            class="flex items-center gap-2 bg-gray-50 w-fit px-2 py-1 rounded-lg border border-gray-200">
+                            <span class="text-[10px] font-bold text-gray-400 uppercase">Venda (R$)</span>
+                            <input type="number" id="input-preco-simulado" oninput="atualizarPrecoSimulado(this.value)"
+                                class="bg-transparent w-20 font-black text-gray-800 outline-none border-b border-dashed border-gray-300 focus:border-brand-500 text-sm">
+                            <i class="ri-edit-line text-gray-300 text-xs"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dica Simulador -->
+                <div class="mt-3 flex items-start gap-2 bg-blue-50 p-2 rounded-lg border border-blue-100">
+                    <i class="ri-lightbulb-flash-line text-blue-500 mt-0.5"></i>
+                    <p class="text-[10px] text-blue-700 leading-tight"><strong>Dica:</strong> Altere o preço de venda
+                        acima para simular cenários. Isso não muda o preço na loja, apenas aqui para cálculo.</p>
+                </div>
+            </div>
+
+            <div class="px-4 space-y-6">
+
+                <!-- SEÇÃO 1: INGREDIENTES -->
+                <div>
+                    <div class="flex justify-between items-end mb-3 px-1">
+                        <h3 class="font-bold text-gray-800 text-sm flex items-center gap-2">
+                            <span
+                                class="w-6 h-6 bg-brand-100 text-brand-600 rounded-full flex items-center justify-center text-xs">1</span>
+                            Ingredientes
+                        </h3>
+                        <button onclick="toggleTooltip('tip-ing')" class="text-gray-400 text-xs hover:text-brand-500"><i
+                                class="ri-question-line"></i> Ajuda</button>
+                    </div>
+
+                    <!-- Tooltip -->
+                    <div id="tip-ing"
+                        class="hidden mb-3 bg-gray-800 text-white p-3 rounded-xl text-xs shadow-lg animate-fade-in">
+                        Liste tudo que vai na receita. O sistema calcula o custo proporcional. Ex: Se comprou 1kg de
+                        Farinha por R$5,00 e usou 200g, o custo é R$1,00.
+                    </div>
+
+                    <div id="lista-ingredientes">
+                        <!-- Injetado via JS -->
+                    </div>
+
+                    <button onclick="adicionarIngrediente()"
+                        class="w-full py-3 border-2 border-dashed border-gray-300 text-gray-500 rounded-xl font-bold text-xs hover:border-brand-400 hover:text-brand-600 hover:bg-brand-50 transition-colors flex items-center justify-center gap-2">
+                        <i class="ri-add-circle-line text-lg"></i> Adicionar Ingrediente
+                    </button>
+                </div>
+
+                <!-- SEÇÃO 2: CUSTOS EXTRAS -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                    <!-- Custos Fixos (R$) -->
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="font-bold text-gray-700 text-xs uppercase flex items-center gap-2">
+                                <i class="ri-money-dollar-box-line text-brand-500"></i> Custos Extras (R$)
+                            </h3>
+                            <button onclick="addExtra('fixos')"
+                                class="text-[10px] bg-gray-100 hover:bg-brand-100 text-gray-600 hover:text-brand-600 px-2 py-1 rounded font-bold transition">+
+                                Add</button>
+                        </div>
+                        <div id="lista-custos-fixos" class="space-y-1 min-h-[40px]"></div>
+                        <p class="text-[10px] text-gray-400 mt-2 italic">Ex: Embalagem, Adesivo, Estimativa de Gás/Luz
+                            por unidade.</p>
+                    </div>
+
+                    <!-- Taxas (%) -->
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-200">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="font-bold text-gray-700 text-xs uppercase flex items-center gap-2">
+                                <i class="ri-percent-line text-purple-500"></i> Taxas de Venda (%)
+                            </h3>
+                            <button onclick="addExtra('taxas')"
+                                class="text-[10px] bg-gray-100 hover:bg-purple-100 text-gray-600 hover:text-purple-600 px-2 py-1 rounded font-bold transition">+
+                                Add</button>
+                        </div>
+                        <div id="lista-taxas-venda" class="space-y-1 min-h-[40px]"></div>
+                        <p class="text-[10px] text-gray-400 mt-2 italic">Ex: Taxa do iFood (12%), Maquininha (2-5%),
+                            Imposto.</p>
+                    </div>
+                </div>
+
+                <!-- SEÇÃO 3: RESULTADO FINAL -->
+                <div id="card-resultado"
+                    class="bg-gray-900 rounded-2xl p-5 text-white shadow-xl relative overflow-hidden mb-6 transition-colors duration-500">
+                    <!-- Background Decoration -->
+                    <div
+                        class="absolute right-0 top-0 w-32 h-32 bg-white opacity-5 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none">
+                    </div>
+
+                    <div class="flex justify-between items-start mb-4 relative z-10">
+                        <div>
+                            <p class="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-1">Seu Lucro
+                                Líquido</p>
+                            <p id="resultado-lucro" class="text-3xl font-black tracking-tight">R$ 0,00</p>
+                        </div>
+                        <div id="status-lucro"
+                            class="bg-white/10 backdrop-blur-md px-3 py-1 rounded-lg text-xs font-bold border border-white/10">
+                            Calculando...
+                        </div>
+                    </div>
+
+                    <div class="space-y-1 text-xs text-gray-400 border-t border-white/10 pt-3 relative z-10">
+                        <div class="flex justify-between">
+                            <span>(-) Ingredientes</span>
+                            <span id="resumo-ingredientes" class="text-white font-mono">R$ 0,00</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>(-) Custos Fixos (Emb/Gás)</span>
+                            <span id="resumo-fixos" class="text-white font-mono">R$ 0,00</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>(-) Taxas (Apps/Cartão)</span>
+                            <span id="resumo-taxas" class="text-white font-mono">R$ 0,00</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- LÓGICA (NOVO ARQUIVO) -->
+    <script src="admin-custos.js"></script>
+
+</body>
+
+</html>

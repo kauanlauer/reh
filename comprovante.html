@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#34d399">
+    <link rel="icon" type="image/png" href="logo.png">
+    <title>Comprovante | Delicia D'Brownie</title>
+    
+    <!-- TAILWIND CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- FONTES -->
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;800&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { 
+                        sans: ['DM Sans', 'sans-serif'], 
+                        serif: ['Playfair Display', 'serif'] 
+                    },
+                    colors: { 
+                        brand: { 
+                            50: '#fff1f2', 100: '#ffe4e6', 500: '#f43f5e', 600: '#db2777', 900: '#881337',
+                            success: '#10b981', // Verde esmeralda
+                        } 
+                    },
+                    boxShadow: {
+                        'success': '0 10px 15px -3px rgba(16, 185, 129, 0.5), 0 4px 6px -2px rgba(16, 185, 129, 0.1)',
+                    },
+                    animation: {
+                        'slide-down': 'slideDown 0.5s ease-out forwards',
+                    },
+                    keyframes: {
+                        slideDown: { '0%': { opacity: '0', transform: 'translateY(-20px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+        .receipt-container { 
+            position: relative; 
+            background: #fff; 
+            border-radius: 1.5rem; 
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            max-width: 450px;
+        }
+        /* Efeito de picote de recibo */
+        .receipt-bottom:before {
+            content: '';
+            position: absolute;
+            top: -20px; /* Alinha na borda superior */
+            left: 0;
+            width: 100%;
+            height: 20px;
+            background: linear-gradient(-45deg, #f9fafb 10px, transparent 0) 0 100%, 
+                        linear-gradient(45deg, #f9fafb 10px, transparent 0) 0 100%;
+            background-size: 20px 20px;
+            background-repeat: repeat-x;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 font-sans text-gray-800 min-h-screen flex flex-col items-center pt-8 pb-12">
+
+    <!-- Recibo Principal -->
+    <div class="receipt-container w-full mx-4 shadow-xl mb-6 animate-slide-down">
+        
+        <!-- Header de Sucesso -->
+        <div class="bg-brand-success p-8 rounded-t-3xl text-white text-center">
+            <svg class="w-12 h-12 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <h1 class="text-3xl font-serif font-black mb-1">Pedido Enviado!</h1>
+            <p class="text-sm opacity-90">Sua reserva para retirada foi concluída.</p>
+        </div>
+
+        <!-- Corpo do Recibo -->
+        <div class="p-6">
+            
+            <!-- Detalhes do Pedido -->
+            <div class="mb-6 border-b border-gray-100 pb-4">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs font-bold text-gray-400 uppercase">ID do Pedido</span>
+                    <span id="comp-id" class="text-lg font-mono font-black text-gray-900">#0000</span>
+                </div>
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-xs font-bold text-gray-400 uppercase">Data/Hora</span>
+                    <span id="comp-data" class="text-sm font-medium text-gray-600">--/--/--</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-xs font-bold text-gray-400 uppercase">Retirada em</span>
+                    <span class="text-sm font-medium text-gray-600">Nossa Loja (Centro)</span>
+                </div>
+            </div>
+
+            <!-- Itens do Pedido -->
+            <h2 class="text-sm font-bold text-gray-500 uppercase mb-3">Sua Reserva</h2>
+            <div id="comp-itens" class="space-y-3 mb-6">
+                <!-- Itens serão injetados aqui -->
+            </div>
+
+            <!-- Total -->
+            <div class="relative receipt-bottom pt-6 mt-4">
+                <div class="flex justify-between font-bold text-xl text-gray-900">
+                    <span>Total</span>
+                    <span id="comp-total">R$ 0,00</span>
+                </div>
+                <p class="text-xs text-gray-500 mt-2 text-center">O pagamento será feito no momento da retirada.</p>
+            </div>
+        </div>
+
+        <!-- Footer com Pontos e Endereço -->
+        <div class="p-6 border-t border-gray-100 bg-gray-50 rounded-b-3xl">
+            <div class="flex items-center justify-center gap-2 mb-4 text-brand-600">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                <span id="comp-pontos" class="text-sm font-bold">Você ganhou +1 Ponto Fidelidade!</span>
+            </div>
+            
+            <p class="text-xs text-gray-500 text-center">
+                <span class="font-bold">Endereço de Retirada:</span> Rua Exemplo, 123 - Centro.
+            </p>
+        </div>
+    </div>
+
+    <!-- Ações Finais -->
+    <div class="flex flex-col gap-3 w-full max-w-sm px-4">
+        <a href="pedidos.html" class="w-full bg-brand-success text-white text-center font-bold py-3 rounded-xl shadow-lg shadow-green-200 active:scale-95 transition-transform">
+            Acompanhar Pedido
+        </a>
+        <a href="index.html" class="w-full bg-white border border-gray-200 text-gray-600 text-center font-bold py-3 rounded-xl active:scale-95 transition-transform">
+            Voltar ao Cardápio
+        </a>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const pedidoDataJson = sessionStorage.getItem('lastPedidoData');
+            
+            if (!pedidoDataJson) {
+                // Se não houver dados, redireciona para o histórico
+                window.location.href = 'pedidos.html';
+                return;
+            }
+
+            const pedido = JSON.parse(pedidoDataJson);
+            renderizarComprovante(pedido);
+
+            // Limpa após renderizar para que o cliente não veja o mesmo comprovante se recarregar
+            sessionStorage.removeItem('lastPedidoData'); 
+        });
+
+        function renderizarComprovante(pedido) {
+            // Formatos utilitários
+            const formatarMoeda = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+            const data = new Date(pedido.data);
+            const dataFormatada = data.toLocaleDateString('pt-BR') + ' ' + data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+            // 1. Detalhes de Header
+            document.getElementById('comp-id').innerText = pedido.id_visual;
+            document.getElementById('comp-data').innerText = dataFormatada;
+
+            // 2. Itens
+            const listaItens = document.getElementById('comp-itens');
+            listaItens.innerHTML = pedido.itens.map(item => {
+                const obs = item.obs ? `<span class="text-[10px] text-red-500 block italic ml-4">Obs: ${item.obs}</span>` : '';
+                return `
+                    <div class="flex justify-between items-start text-sm border-l-2 border-brand-50 pl-2">
+                        <div>
+                            <span class="font-medium text-gray-800">${item.qtd}x ${item.nome}</span>
+                            ${obs}
+                        </div>
+                        <span class="font-bold text-gray-900">${formatarMoeda(item.precoFinal * item.qtd)}</span>
+                    </div>
+                `;
+            }).join('');
+
+            // 3. Total e Pontos
+            document.getElementById('comp-total').innerText = formatarMoeda(pedido.total);
+            const pontosTxt = pedido.pontos_ganhos > 0 ? `Você ganhou +${pedido.pontos_ganhos} Ponto Fidelidade!` : 'Obrigado por sua compra!';
+            document.getElementById('comp-pontos').innerText = pontosTxt;
+        }
+
+        // Função para simular a impressão ou captura de tela (apenas para fins de demonstração)
+        function capturarComprovante() {
+             alert('Em um aplicativo real, aqui você teria a opção de salvar como PDF ou imagem!');
+        }
+    </script>
+</body>
+</html>
