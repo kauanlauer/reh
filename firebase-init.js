@@ -19,4 +19,5 @@
 
     window.db = firebase.firestore();
     window.auth = firebase.auth();
+    window.storage = typeof firebase.storage === 'function' ? firebase.storage() : null;
 })();

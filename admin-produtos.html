@@ -20,6 +20,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-storage-compat.js"></script>
     <script src="firebase-init.js"></script>
     <script src="admin-auth.js"></script>
 
@@ -102,13 +103,82 @@
     <script>
         const db = window.db;
         const auth = window.auth;
+        const storage = window.storage;
 
         // --- VARIÁVEIS DE ESTADO ---
         let produtosCache = []; // Cache de todos os produtos
         let editandoId = null;  // ID do produto em edição
+        let imagemArquivoSelecionado = null;
 
         // --- UTILIDADES ---
         const formatarMoeda = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+        const PLACEHOLDER_IMG = 'https://placehold.co/400x192?text=Sem+Imagem+Cadastrada';
+
+        function atualizarPreviewImagem(url) {
+            document.getElementById('preview-img').src = url || 'https://placehold.co/400?text=Preview';
+        }
+
+        function setUploadStatus(msg = '', tipo = 'neutro') {
+            const el = document.getElementById('upload-status');
+            if (!el) return;
+
+            const cor = tipo === 'erro'
+                ? 'text-red-600'
+                : (tipo === 'ok' ? 'text-green-600' : 'text-gray-400');
+
+            el.className = `text-[11px] font-bold mt-1 ${cor}`;
+            el.textContent = msg;
+        }
+
+        function normalizarNomeArquivo(nome = '') {
+            return nome
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .replace(/[^a-zA-Z0-9_-]/g, '-')
+                .replace(/-+/g, '-')
+                .replace(/^-|-$/g, '')
+                .toLowerCase() || 'produto';
+        }
+
+        function selecionarImagemArquivo(e) {
+            const file = e.target.files?.[0] || null;
+            imagemArquivoSelecionado = file;
+            if (!file) {
+                setUploadStatus('');
+                return;
+            }
+
+            if (!file.type?.startsWith('image/')) {
+                imagemArquivoSelecionado = null;
+                e.target.value = '';
+                setUploadStatus('Selecione um arquivo de imagem.', 'erro');
+                return;
+            }
+
+            const blobUrl = URL.createObjectURL(file);
+            atualizarPreviewImagem(blobUrl);
+            setUploadStatus('Imagem pronta para upload ao salvar.', 'ok');
+        }
+
+        async function subirImagemProduto() {
+            if (!imagemArquivoSelecionado) return '';
+            if (!storage) throw new Error('Firebase Storage não está disponível.');
+
+            const nomeProduto = document.getElementById('nome').value.trim() || 'produto';
+            const nomeBase = normalizarNomeArquivo(nomeProduto);
+            const ext = (imagemArquivoSelecionado.name.split('.').pop() || 'jpg').toLowerCase();
+            const caminho = `produtos/${Date.now()}-${nomeBase}.${ext}`;
+
+            setUploadStatus('Enviando imagem...', 'neutro');
+
+            const ref = storage.ref().child(caminho);
+            await ref.put(imagemArquivoSelecionado, {
+                contentType: imagemArquivoSelecionado.type || 'image/jpeg'
+            });
+            const url = await ref.getDownloadURL();
+            setUploadStatus('Upload concluído com sucesso.', 'ok');
+            return url;
+        }
 
         // --- LIFECYCLE ---
         document.addEventListener('DOMContentLoaded', () => {
@@ -127,9 +197,11 @@
 
                 // Preview de Imagem no Form
                 document.getElementById('imagem').addEventListener('input', (e) => {
-                    const img = document.getElementById('preview-img');
-                    img.src = e.target.value || 'https://placehold.co/400?text=Sem+Imagem';
+                    const url = (e.target.value || '').trim();
+                    if (url) atualizarPreviewImagem(url);
+                    else if (!imagemArquivoSelecionado) atualizarPreviewImagem('https://placehold.co/400?text=Preview');
                 });
+                document.getElementById('imagem-arquivo').addEventListener('change', selecionarImagemArquivo);
 
                 // NOVO: Verifica e solicita instalação PWA
                 checkAndPromptPWA();
@@ -329,7 +401,7 @@
                 document.getElementById('preco').value = p.preco || 0;
                 document.getElementById('preco-promo').value = p.preco_promo || '';
                 document.getElementById('imagem').value = p.imagem || '';
-                document.getElementById('preview-img').src = p.imagem || 'https://placehold.co/400?text=Preview';
+                atualizarPreviewImagem(p.imagem || 'https://placehold.co/400?text=Preview');
                 document.getElementById('estoque-atual').value = p.estoque_atual !== undefined ? p.estoque_atual : 0;
                 document.getElementById('tag-especial').value = p.tag_especial || 'normal';
                 document.getElementById('ativo').checked = p.ativo !== undefined ? p.ativo : true;
@@ -349,7 +421,7 @@
                 editandoId = null;
                 titulo.innerText = "Novo Produto";
                 document.getElementById('ativo').checked = true; // Padrão ativo
-                document.getElementById('preview-img').src = 'https://placehold.co/400?text=Preview';
+                atualizarPreviewImagem('https://placehold.co/400?text=Preview');
             }
 
             // Animação Entrada (Visível)
@@ -380,6 +452,10 @@
             document.getElementById('form-produto').reset();
             document.getElementById('categoria-nova-container').classList.add('hidden');
             document.getElementById('categoria-select').value = ''; // Limpa a seleção
+            document.getElementById('imagem-arquivo').value = '';
+            imagemArquivoSelecionado = null;
+            setUploadStatus('');
+            atualizarPreviewImagem('https://placehold.co/400?text=Preview');
             editandoId = null;
         }
 
@@ -403,6 +479,13 @@
                 const preco = parseFloat(document.getElementById('preco').value) || 0;
                 if (preco <= 0) throw new Error("O preço deve ser maior que zero.");
 
+                let imagemFinal = (document.getElementById('imagem').value || '').trim();
+                if (imagemArquivoSelecionado) {
+                    imagemFinal = await subirImagemProduto();
+                    document.getElementById('imagem').value = imagemFinal;
+                }
+                if (!imagemFinal) imagemFinal = PLACEHOLDER_IMG;
+
                 const produto = {
                     nome: document.getElementById('nome').value.trim(),
                     descricao: document.getElementById('descricao').value.trim(),
@@ -410,7 +493,7 @@
                     preco: preco,
                     preco_promo: parseFloat(document.getElementById('preco-promo').value) || 0,
                     estoque_atual: parseInt(document.getElementById('estoque-atual').value) || 0,
-                    imagem: document.getElementById('imagem').value || 'https://placehold.co/400x192?text=Sem+Imagem+Cadastrada',
+                    imagem: imagemFinal,
                     tag_especial: document.getElementById('tag-especial').value,
                     ativo: document.getElementById('ativo').checked,
                     destaque: document.getElementById('destaque').checked,
@@ -703,6 +786,14 @@
                             <input type="text" id="imagem"
                                 class="w-full p-3 border border-gray-200 rounded-xl text-xs text-gray-500 focus:border-brand-500 outline-none"
                                 placeholder="https://...">
+                            <p class="text-[11px] text-gray-400 font-medium mt-1">Opcional: mantenha por link, como já funciona hoje.</p>
+                        </div>
+
+                        <div class="bg-gray-50 border border-gray-200 rounded-xl p-3">
+                            <label class="block text-xs font-bold text-gray-500 uppercase mb-2">Ou enviar foto da câmera/galeria</label>
+                            <input type="file" id="imagem-arquivo" accept="image/*" capture="environment"
+                                class="block w-full text-xs text-gray-600 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-brand-50 file:text-brand-700 file:font-bold hover:file:bg-brand-100">
+                            <p id="upload-status" class="text-[11px] text-gray-400 font-bold mt-1"></p>
                         </div>
 
                         <div>
