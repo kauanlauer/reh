@@ -20,6 +20,8 @@
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
+    <script src="firebase-init.js"></script>
+    <script src="admin-auth.js"></script>
 
     <!-- FONTES -->
     <link
@@ -98,19 +100,8 @@
     </style>
 
     <script>
-        // --- FIREBASE CONFIGURAÇÃO (Configurações da sua loja) ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyCM9tMvnRV-o7X66euCBKuLmuz-kIrClWY",
-            authDomain: "renata-26079.firebaseapp.com",
-            projectId: "renata-26079",
-            storageBucket: "renata-26079.firebasestorage.app",
-            messagingSenderId: "995787482442",
-            appId: "1:995787482442:web:fdbca404a0e251cc278db3"
-        };
-
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const auth = firebase.auth();
+        const db = window.db;
+        const auth = window.auth;
 
         // --- VARIÁVEIS DE ESTADO ---
         let produtosCache = []; // Cache de todos os produtos
@@ -121,24 +112,28 @@
 
         // --- LIFECYCLE ---
         document.addEventListener('DOMContentLoaded', () => {
-            // Login Anônimo para Admin (melhorar autenticação em produção)
-            auth.onAuthStateChanged(user => { if (!user) auth.signInAnonymously(); });
+            if (!db || !auth) {
+                alert('Erro ao iniciar Firebase. Recarregue a página.');
+                return;
+            }
 
-            carregarProdutos();
+            window.AdminAuth.requireAdminPage(() => {
+                carregarProdutos();
 
-            // Event Listeners
-            document.getElementById('search-input').addEventListener('input', filtrarProdutos);
-            document.getElementById('categoria-select').addEventListener('change', toggleNovaCategoria);
-            document.getElementById('form-produto').addEventListener('submit', salvarProduto);
+                // Event Listeners
+                document.getElementById('search-input').addEventListener('input', filtrarProdutos);
+                document.getElementById('categoria-select').addEventListener('change', toggleNovaCategoria);
+                document.getElementById('form-produto').addEventListener('submit', salvarProduto);
 
-            // Preview de Imagem no Form
-            document.getElementById('imagem').addEventListener('input', (e) => {
-                const img = document.getElementById('preview-img');
-                img.src = e.target.value || 'https://placehold.co/400?text=Sem+Imagem';
+                // Preview de Imagem no Form
+                document.getElementById('imagem').addEventListener('input', (e) => {
+                    const img = document.getElementById('preview-img');
+                    img.src = e.target.value || 'https://placehold.co/400?text=Sem+Imagem';
+                });
+
+                // NOVO: Verifica e solicita instalação PWA
+                checkAndPromptPWA();
             });
-
-            // NOVO: Verifica e solicita instalação PWA
-            checkAndPromptPWA();
         });
 
         // --- LÓGICA PWA ---

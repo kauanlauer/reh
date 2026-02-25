@@ -16,6 +16,8 @@
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
+    <script src="firebase-init.js"></script>
+    <script src="admin-auth.js"></script>
 
     <!-- FONTES -->
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;800&display=swap" rel="stylesheet">
@@ -57,19 +59,8 @@
     </style>
 
     <script>
-        // --- FIREBASE CONFIG ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyCM9tMvnRV-o7X66euCBKuLmuz-kIrClWY",
-            authDomain: "renata-26079.firebaseapp.com",
-            projectId: "renata-26079",
-            storageBucket: "renata-26079.firebasestorage.app",
-            messagingSenderId: "995787482442",
-            appId: "1:995787482442:web:fdbca404a0e251cc278db3"
-        };
-
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const auth = firebase.auth();
+        const db = window.db;
+        const auth = window.auth;
 
         // --- VARIÁVEIS GLOBAIS ---
         const formatarMoeda = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
@@ -83,36 +74,41 @@
         
         // --- LIFECYCLE ---
         document.addEventListener('DOMContentLoaded', () => {
-            auth.onAuthStateChanged(user => { if (!user) auth.signInAnonymously(); });
+            if (!db || !auth) {
+                alert('Erro ao iniciar Firebase. Recarregue a página.');
+                return;
+            }
 
-            // Inicializa Áudio
-            audioAlert = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+            window.AdminAuth.requireAdminPage(() => {
+                // Inicializa Áudio
+                audioAlert = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
 
-            // Listeners
-            initDeliveryListener();
-            initEncomendasListener();
-            carregarConfiguracoes();
-            
-            mostrarPainel('pedidos');
+                // Listeners
+                initDeliveryListener();
+                initEncomendasListener();
+                carregarConfiguracoes();
+                
+                mostrarPainel('pedidos');
 
-            // Navegação
-            document.getElementById('nav-pedidos').addEventListener('click', () => mostrarPainel('pedidos'));
-            document.getElementById('nav-encomendas').addEventListener('click', () => mostrarPainel('encomendas'));
-            document.getElementById('nav-relatorios').addEventListener('click', () => mostrarPainel('relatorios'));
+                // Navegação
+                document.getElementById('nav-pedidos').addEventListener('click', () => mostrarPainel('pedidos'));
+                document.getElementById('nav-encomendas').addEventListener('click', () => mostrarPainel('encomendas'));
+                document.getElementById('nav-relatorios').addEventListener('click', () => mostrarPainel('relatorios'));
 
-            // Config Loja
-            document.getElementById('form-config').addEventListener('submit', salvarConfiguracoes);
-            document.getElementById('btn-toggle-status').addEventListener('click', toggleStatusLoja);
+                // Config Loja
+                document.getElementById('form-config').addEventListener('submit', salvarConfiguracoes);
+                document.getElementById('btn-toggle-status').addEventListener('click', toggleStatusLoja);
 
-            // Relatórios
-            document.getElementById('btn-filtrar-relatorio').addEventListener('click', gerarRelatorio);
-            const hoje = new Date().toISOString().split('T')[0];
-            document.getElementById('data-inicio').value = hoje;
-            document.getElementById('data-fim').value = hoje;
-            gerarRelatorio();
+                // Relatórios
+                document.getElementById('btn-filtrar-relatorio').addEventListener('click', gerarRelatorio);
+                const hoje = new Date().toISOString().split('T')[0];
+                document.getElementById('data-inicio').value = hoje;
+                document.getElementById('data-fim').value = hoje;
+                gerarRelatorio();
 
-            // Habilitar som no primeiro clique (política dos navegadores)
-            document.body.addEventListener('click', habilitarAudio, { once: true });
+                // Habilitar som no primeiro clique (política dos navegadores)
+                document.body.addEventListener('click', habilitarAudio, { once: true });
+            });
         });
 
         function habilitarAudio() {

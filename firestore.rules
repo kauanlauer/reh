@@ -1,0 +1,80 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return signedIn() &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.ativo == true;
+    }
+
+    function isOwnerByUid(uidField) {
+      return signedIn() && uidField is string && uidField == request.auth.uid;
+    }
+
+    match /admins/{uid} {
+      allow read: if isAdmin();
+      allow create: if signedIn() &&
+        request.auth.uid == uid &&
+        request.auth.token.firebase.sign_in_provider == 'password' &&
+        request.auth.token.email == 'loja@deliciabrownie.admin' &&
+        request.resource.data.ativo == true &&
+        request.resource.data.role == 'owner' &&
+        request.resource.data.username == 'loja';
+      allow update, delete: if isAdmin();
+    }
+
+    match /produtos/{id} {
+      allow read: if isAdmin() || (resource.data.ativo == true);
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /config/{id} {
+      allow read: if isAdmin() || id == 'loja';
+      allow write: if isAdmin();
+    }
+
+    match /fichas_tecnicas/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    match /clientes/{id} {
+      allow read: if isAdmin() || isOwnerByUid(resource.data.auth_uid);
+
+      allow create: if isAdmin() || (
+        signedIn() &&
+        request.resource.data.auth_uid == request.auth.uid &&
+        request.resource.data.telefone_limpo is string
+      );
+
+      allow update: if isAdmin() || (
+        signedIn() &&
+        resource.data.auth_uid == request.auth.uid &&
+        request.resource.data.auth_uid == request.auth.uid
+      );
+
+      allow delete: if isAdmin();
+    }
+
+    match /pedidos/{id} {
+      allow create: if signedIn() &&
+        request.resource.data.cliente_uid == request.auth.uid &&
+        request.resource.data.status == 'Enviado';
+
+      allow read: if isAdmin() || isOwnerByUid(resource.data.cliente_uid);
+      allow update, delete: if isAdmin();
+    }
+
+    match /encomendas/{id} {
+      allow create: if signedIn();
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login Admin | Delicia D'Brownie</title>
+    <link rel="icon" type="image/png" href="logo.png">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
+    <script src="firebase-init.js"></script>
+    <script src="admin-auth.js"></script>
+</head>
+<body class="min-h-screen bg-gray-100 flex items-center justify-center px-4">
+    <main class="w-full max-w-md bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
+        <div class="text-center mb-6">
+            <img src="logo.png" alt="Logo" class="w-16 h-16 rounded-full mx-auto mb-3 border border-gray-200">
+            <h1 class="text-2xl font-black text-gray-900">Painel Admin</h1>
+            <p class="text-sm text-gray-500">Acesso restrito da loja</p>
+        </div>
+
+        <form id="login-form" class="space-y-4">
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Usuário</label>
+                <input id="username" type="text" value="loja" autocomplete="username" class="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-pink-600" required>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Senha</label>
+                <input id="password" type="password" autocomplete="current-password" class="w-full border border-gray-200 rounded-xl px-4 py-3 outline-none focus:border-pink-600" required>
+            </div>
+
+            <button id="btn-login" type="submit" class="w-full bg-gray-900 text-white font-bold py-3 rounded-xl">Entrar</button>
+            <p id="erro" class="text-sm text-red-600 hidden"></p>
+        </form>
+    </main>
+
+    <script>
+        document.getElementById('login-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('btn-login');
+            const erro = document.getElementById('erro');
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+
+            erro.classList.add('hidden');
+            btn.disabled = true;
+            btn.innerText = 'Entrando...';
+
+            try {
+                await window.AdminAuth.loginWithUsernamePassword(username, password);
+                window.location.href = window.AdminAuth.nextUrl();
+            } catch (err) {
+                console.error(err);
+                if (err?.code === 'auth/operation-not-allowed') {
+                    erro.innerText = 'Ative Email/Senha no Firebase Authentication.';
+                } else if (err?.code === 'auth/wrong-password' || err?.code === 'auth/invalid-credential') {
+                    erro.innerText = 'Senha inválida para o usuário loja.';
+                } else if (err?.code === 'auth/too-many-requests') {
+                    erro.innerText = 'Muitas tentativas. Aguarde alguns minutos.';
+                } else {
+                    erro.innerText = 'Login inválido ou sem permissão de admin.';
+                }
+                erro.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.innerText = 'Entrar';
+            }
+        });
+    </script>
+</body>
+</html>

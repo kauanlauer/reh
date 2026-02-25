@@ -17,6 +17,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
     <script src="firebase-init.js"></script>
+    <script src="admin-auth.js"></script>
 
     <!-- FONTES -->
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;800&display=swap" rel="stylesheet">
@@ -59,21 +60,21 @@
                 return;
             }
 
-            auth.onAuthStateChanged(user => { if (!user) auth.signInAnonymously(); });
-            
-            carregarClientes();
+            window.AdminAuth.requireAdminPage(() => {
+                carregarClientes();
 
-            // Listeners
-            document.getElementById('search-input').addEventListener('input', filtrarClientes);
-            document.getElementById('form-cliente').addEventListener('submit', salvarCliente);
+                // Listeners
+                document.getElementById('search-input').addEventListener('input', filtrarClientes);
+                document.getElementById('form-cliente').addEventListener('submit', salvarCliente);
 
-            // Máscara de Telefone no Input
-            const inputFone = document.getElementById('telefone');
-            inputFone.addEventListener('input', (e) => {
-                let v = e.target.value.replace(/\D/g, '');
-                v = v.replace(/^(\d{2})(\d)/g, '($1) $2');
-                v = v.replace(/(\d)(\d{4})$/, '$1-$2');
-                e.target.value = v;
+                // Máscara de Telefone no Input
+                const inputFone = document.getElementById('telefone');
+                inputFone.addEventListener('input', (e) => {
+                    let v = e.target.value.replace(/\D/g, '');
+                    v = v.replace(/^(\d{2})(\d)/g, '($1) $2');
+                    v = v.replace(/(\d)(\d{4})$/, '$1-$2');
+                    e.target.value = v;
+                });
             });
         });
 

@@ -129,6 +129,11 @@
             <div id="nav-categorias" class="container mx-auto flex gap-3 overflow-x-auto hide-scroll py-3 px-4 scroll-smooth snap-x">
                 <!-- Via JS -->
             </div>
+            <div class="container mx-auto px-4 pb-3">
+                <div class="text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1.5 inline-flex items-center gap-1">
+                    <span>Somente retirada na loja</span>
+                </div>
+            </div>
         </div>
     </header>
 
@@ -302,6 +307,10 @@
 
     <!-- TOAST -->
     <div id="toast" class="hidden"></div>
+    <button id="btn-sacola-flutuante" onclick="abrirCarrinho()" class="md:hidden hidden fixed bottom-20 right-4 z-[65] bg-gray-900 text-white rounded-full px-4 py-3 shadow-2xl shadow-black/20 font-bold text-sm items-center gap-2 active:scale-95 transition">
+        <span id="btn-sacola-qtd" class="bg-white text-gray-900 rounded-full min-w-[22px] h-[22px] px-1 text-xs flex items-center justify-center">0</span>
+        Ver sacola
+    </button>
 
     <!-- SCRIPTS LÓGICA -->
     <script src="firebase-init.js"></script>

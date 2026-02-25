@@ -94,6 +94,7 @@
             nome,
             telefone,
             telefone_limpo: telefoneLimpo,
+            auth_uid: window.auth?.currentUser?.uid || atual.auth_uid || null,
             pontos: parseInt((partial && partial.pontos) ?? atual.pontos ?? clienteBase?.pontos ?? 0, 10) || 0,
             total_pedidos: parseInt(atual.total_pedidos || clienteBase?.total_pedidos || 0, 10) || 0,
             data_cadastro: atual.data_cadastro || now,
@@ -120,6 +121,7 @@
             nome: remote.nome || fromSession?.nome || '',
             telefone: remote.telefone || fromSession?.telefone || '',
             telefone_limpo: docId,
+            auth_uid: remote.auth_uid || null,
             pontos: parseInt(remote.pontos || 0, 10) || 0,
             total_pedidos: parseInt(remote.total_pedidos || 0, 10) || 0
         };
@@ -152,6 +154,7 @@
                 nome,
                 telefone,
                 telefone_limpo: telefoneLimpo,
+                auth_uid: window.auth?.currentUser?.uid || atual.auth_uid || null,
                 pontos: (parseInt(atual.pontos || 0, 10) || 0) + pontosGanhos,
                 total_pedidos: (parseInt(atual.total_pedidos || 0, 10) || 0) + 1,
                 total_gasto: (parseFloat(atual.total_gasto || 0) || 0) + (parseFloat(data?.valorPedido || 0) || 0),

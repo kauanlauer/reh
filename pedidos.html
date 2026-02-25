@@ -17,6 +17,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
+    <script src="firebase-init.js"></script>
 
     <!-- FONTES -->
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Playfair+Display:wght@600;800&display=swap" rel="stylesheet">
@@ -196,31 +197,41 @@
 
     <!-- SCRIPTS -->
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyCM9tMvnRV-o7X66euCBKuLmuz-kIrClWY",
-            authDomain: "renata-26079.firebaseapp.com",
-            projectId: "renata-26079",
-            storageBucket: "renata-26079.firebasestorage.app",
-            messagingSenderId: "995787482442",
-            appId: "1:995787482442:web:fdbca404a0e251cc278db3"
-        };
-
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const auth = firebase.auth();
+        const db = window.db;
+        const auth = window.auth;
         
         let pedidosCache = [];
 
         document.addEventListener('DOMContentLoaded', () => {
-            carregarHistorico();
+            if (!db || !auth) {
+                renderizarVazio(document.getElementById('lista-pedidos'), "Erro ao iniciar conexão.");
+                document.getElementById('skeleton').classList.add('hidden');
+                document.getElementById('lista-pedidos').classList.remove('hidden');
+                return;
+            }
+
+            auth.onAuthStateChanged(async (user) => {
+                if (user) {
+                    await carregarHistorico();
+                } else {
+                    try {
+                        await auth.signInAnonymously();
+                    } catch (_e) {
+                        renderizarVazio(document.getElementById('lista-pedidos'), "Erro de autenticação.");
+                        document.getElementById('skeleton').classList.add('hidden');
+                        document.getElementById('lista-pedidos').classList.remove('hidden');
+                    }
+                }
+            });
         });
 
         async function carregarHistorico() {
             const fone = localStorage.getItem('userPhone');
+            const uid = auth.currentUser?.uid;
             const container = document.getElementById('lista-pedidos');
             const skeleton = document.getElementById('skeleton');
 
-            if (!fone) {
+            if (!fone || !uid) {
                 renderizarVazio(container, "Faça login no seu perfil para ver seus pedidos.");
                 skeleton.classList.add('hidden');
                 container.classList.remove('hidden');
@@ -228,17 +239,22 @@
             }
 
             try {
-                // CORREÇÃO: Removi o .orderBy() do Firestore.
-                // O Firestore exige um índice composto se usarmos .where() e .orderBy() juntos.
-                // Para evitar erros, buscamos os dados e ordenamos via JavaScript.
                 const snap = await db.collection('pedidos')
-                    .where('cliente_telefone_limpo', '==', fone.replace(/\D/g, ''))
-                    .limit(20) // Buscamos um pouco mais para garantir
+                    .where('cliente_uid', '==', uid)
+                    .limit(30)
                     .get();
 
                 pedidosCache = snap.docs.map(d => ({ id_doc: d.id, ...d.data() }));
+
+                // Compatibilidade com pedidos antigos sem cliente_uid
+                if (pedidosCache.length === 0) {
+                    const legado = await db.collection('pedidos')
+                        .where('cliente_telefone_limpo', '==', fone.replace(/\D/g, ''))
+                        .limit(20)
+                        .get();
+                    pedidosCache = legado.docs.map(d => ({ id_doc: d.id, ...d.data() }));
+                }
                 
-                // Ordenação via Código (JavaScript) - Data mais recente primeiro
                 pedidosCache.sort((a, b) => new Date(b.data) - new Date(a.data));
                 
                 renderizarLista(pedidosCache, container);

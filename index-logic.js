@@ -14,6 +14,7 @@ let userPoints = clienteAtual?.pontos || parseInt(localStorage.getItem('userPoin
 let todosProdutos = []; 
 let produtoSelecionado = null, qtdModal = 1;
 let filtroFavoritosAtivo = false;
+let pedidoEmEnvio = false;
 
 // Utilitários
 const sanitizarId = (str) => str.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
@@ -440,6 +441,8 @@ function renderizarCarrinho() {
 window.removerItem = (idx) => { vibrar(); carrinho.splice(idx, 1); salvarCarrinho(); renderizarCarrinho(); }
 
 window.prepararPedido = async () => {
+    if (pedidoEmEnvio) return;
+
     if (configuracaoLoja.status === 'Fechada') {
         vibrar(); alert('A loja está fechada. Voltamos às ' + configuracaoLoja.horario_abertura); return;
     }
@@ -450,6 +453,10 @@ window.prepararPedido = async () => {
         toggleModal('modal-carrinho', false);
         mostrarToast('Faça login para finalizar', 'erro');
         setTimeout(() => window.location.href = "perfil.html", 1500);
+        return;
+    }
+    if (carrinho.length === 0) {
+        mostrarToast('Sua sacola está vazia.', 'erro');
         return;
     }
 
@@ -478,16 +485,20 @@ window.prepararPedido = async () => {
     const total = carrinho.reduce((acc, i) => acc + (i.precoFinal * i.qtd), 0);
     const btn = document.getElementById('btn-finalizar');
     const txtOriginal = btn.innerText; // Guarda o texto original
+    pedidoEmEnvio = true;
     btn.innerText = 'Enviando...'; btn.disabled = true;
 
     const pontosGanhos = 1;
     const uid = clienteSession ? clienteSession.normalizarTelefone(fone) : fone.replace(/\D/g, '');
+    const authUid = auth.currentUser?.uid || null;
+    const pedidoToken = Date.now();
 
     const pedido = {
-        id_visual: `#${Math.floor(Math.random()*10000)}`,
+        id_visual: `#${String(pedidoToken).slice(-6)}`,
         cliente_nome: nome,
         cliente_telefone: fone,
         cliente_telefone_limpo: uid,
+        cliente_uid: authUid,
         itens: carrinho,
         total: total,
         status: 'Enviado',
@@ -540,6 +551,7 @@ window.prepararPedido = async () => {
         console.error(e); 
         btn.innerText = txtOriginal; // Volta o texto
         btn.disabled = false;
+        pedidoEmEnvio = false;
         alert('Erro ao enviar pedido. Tente novamente.');
     });
 }
@@ -551,6 +563,13 @@ function atualizarBadge() {
     if(badgeD) { badgeD.innerText = qtd; badgeD.classList.toggle('scale-0', qtd === 0); }
     const badgeM = document.getElementById('badge-cart-mobile');
     if(badgeM) { badgeM.innerText = qtd; badgeM.classList.toggle('scale-0', qtd === 0); }
+    const btnSacola = document.getElementById('btn-sacola-flutuante');
+    const btnSacolaQtd = document.getElementById('btn-sacola-qtd');
+    if (btnSacola && btnSacolaQtd) {
+        btnSacolaQtd.innerText = qtd;
+        btnSacola.classList.toggle('hidden', qtd === 0);
+        btnSacola.classList.toggle('flex', qtd > 0);
+    }
 }
 function atualizarStatusLoja() {
     const bar = document.getElementById('status-loja-bar');

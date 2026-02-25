@@ -1,19 +1,5 @@
-// --- CONFIGURAÇÃO DO FIREBASE ---
-const firebaseConfig = {
-    apiKey: "AIzaSyCM9tMvnRV-o7X66euCBKuLmuz-kIrClWY",
-    authDomain: "renata-26079.firebaseapp.com",
-    projectId: "renata-26079",
-    storageBucket: "renata-26079.firebasestorage.app",
-    messagingSenderId: "995787482442",
-    appId: "1:995787482442:web:fdbca404a0e251cc278db3"
-};
-
-// Inicializa o Firebase
-if (!firebase.apps.length) {
-    firebase.initializeApp(firebaseConfig);
-}
-const db = firebase.firestore();
-const auth = firebase.auth();
+const db = window.db;
+const auth = window.auth;
 
 // --- VARIÁVEIS GLOBAIS ---
 let produtoAtual = null;
@@ -42,20 +28,14 @@ let produtosCache = [];
 
 // --- INICIALIZAÇÃO SEGURA (CORREÇÃO DO PROBLEMA) ---
 document.addEventListener('DOMContentLoaded', () => {
-    // Listener de Autenticação
-    // Só carrega os dados DEPOIS que confirmar que o usuário está logado
-    auth.onAuthStateChanged(user => {
-        if (user) {
-            console.log("Usuário autenticado:", user.uid);
-            carregarConfiguracoesGlobais();
-            carregarListaProdutos();
-        } else {
-            console.log("Fazendo login anônimo...");
-            auth.signInAnonymously().catch(erro => {
-                console.error("Erro no login:", erro);
-                alert("Erro ao conectar com o servidor. Verifique sua internet.");
-            });
-        }
+    if (!db || !auth) {
+        alert('Erro ao iniciar Firebase. Recarregue a página.');
+        return;
+    }
+
+    window.AdminAuth.requireAdminPage(() => {
+        carregarConfiguracoesGlobais();
+        carregarListaProdutos();
     });
 
     // Configura a busca
