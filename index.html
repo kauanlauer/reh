@@ -1,508 +1,515 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Delícia D'Brownie - Cardápio Digital</title>
-    <link rel="stylesheet" href="styles.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#db2777">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Delicia D'Brownie</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module" src="https://unpkg.com/heroicons@2.1.1/dist/solid/index.js"></script>
+
+    <!-- FIREBASE -->
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
+
+    <!-- Fontes -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'], serif: ['Playfair Display', 'serif'] },
+                    colors: { brand: { 50: '#fdf2f8', 100: '#fce7f3', 500: '#ec4899', 600: '#db2777', 800: '#9d174d' } }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        html { scroll-behavior: smooth; -webkit-tap-highlight-color: transparent; }
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .img-cover { width: 100%; height: 100%; object-fit: cover; }
+        .modal-overlay { transition: opacity 0.3s ease; }
+        .modal-content { transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1); }
+        .skeleton { background: #f3f4f6; position: relative; overflow: hidden; }
+        .skeleton::after {
+            content: ""; position: absolute; top: 0; right: 0; bottom: 0; left: 0;
+            transform: translateX(-100%);
+            background-image: linear-gradient(90deg, rgba(255, 255, 255, 0) 0, rgba(255, 255, 255, 0.4) 20%, rgba(255, 255, 255, 0.7) 60%, rgba(255, 255, 255, 0));
+            animation: shimmer 2s infinite;
+        }
+        @keyframes shimmer { 100% { transform: translateX(100%); } }
+    </style>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCM9tMvnRV-o7X66euCBKuLmuz-kIrClWY",
+            authDomain: "renata-26079.firebaseapp.com",
+            projectId: "renata-26079",
+            storageBucket: "renata-26079.firebasestorage.app",
+            messagingSenderId: "995787482442",
+            appId: "1:995787482442:web:fdbca404a0e251cc278db3"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        let carrinho = JSON.parse(localStorage.getItem('meuCarrinho')) || [];
+        let produtoSelecionado = null, qtdModal = 1;
+        let configuracaoLoja = { status: 'Fechada', horario_abertura: '18:00', horario_fechamento: '23:00' };
+
+        const formatarMoeda = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+
+        document.addEventListener('DOMContentLoaded', () => {
+            auth.onAuthStateChanged(user => { if (!user) auth.signInAnonymously(); });
+            
+            atualizarIdentificacao();
+            carregarConfiguracoesLoja(); // Carrega o status da loja primeiro
+            carregarVitrine(); 
+            atualizarBadge();
+        });
+
+        // --- STATUS DA LOJA ---
+        function carregarConfiguracoesLoja() {
+            db.collection('config').doc('loja').onSnapshot(doc => {
+                if (doc.exists) {
+                    configuracaoLoja = doc.data();
+                }
+                atualizarStatusLoja();
+            });
+        }
+
+        function atualizarStatusLoja() {
+            const aviso = document.getElementById('aviso-loja-fechada');
+            const total = carrinho.reduce((a, i) => a + i.qtd, 0);
+            
+            if (configuracaoLoja.status === 'Fechada') {
+                aviso.classList.remove('hidden');
+                aviso.innerHTML = `😴 FECHADA. Abrimos às ${configuracaoLoja.horario_abertura} em ${configuracaoLoja.dias}.`;
+                
+                // Se estiver fechada e tiver itens, desativa o botão de finalizar
+                if (total > 0) {
+                     document.getElementById('btn-finalizar').disabled = true;
+                     document.getElementById('btn-finalizar').innerHTML = `Fechado. Abrimos às ${configuracaoLoja.horario_abertura}`;
+                     document.getElementById('btn-finalizar').classList.remove('bg-green-600', 'hover:bg-green-700');
+                     document.getElementById('btn-finalizar').classList.add('bg-gray-400', 'cursor-not-allowed');
+                }
+            } else {
+                aviso.classList.add('hidden');
+                
+                // Se o botão estava desativado, reativa (e atualiza o texto no abrirCarrinho)
+                document.getElementById('btn-finalizar').disabled = false;
+                document.getElementById('btn-finalizar').classList.add('bg-green-600', 'hover:bg-green-700');
+                document.getElementById('btn-finalizar').classList.remove('bg-gray-400', 'cursor-not-allowed');
+            }
+            
+            // Força a atualização do carrinho para garantir que o botão esteja certo
+            atualizarBadge();
+        }
+
+
+        // --- CARREGAMENTO VITRINE (Mantido) ---
+        function atualizarIdentificacao() {
+            const nome = localStorage.getItem('userName');
+            const el = document.getElementById('saudacao-usuario');
+            const av = document.getElementById('avatar-letra');
+            if (nome) {
+                el.innerHTML = `Olá, <span class="text-brand-600 font-bold">${nome.split(' ')[0]}</span> 👋`;
+                av.innerText = nome.charAt(0).toUpperCase();
+                av.className = "h-8 w-8 rounded-full bg-brand-100 text-brand-600 flex items-center justify-center text-xs font-bold border border-brand-200";
+            } else {
+                el.innerHTML = `Bem-vindo(a)!`;
+                av.innerText = "?";
+            }
+        }
+
+        function carregarVitrine() {
+            const container = document.getElementById('main-vitrine');
+            const navContainer = document.getElementById('nav-categorias');
+            
+            // Skeletons (Loading)
+            container.innerHTML = `<div class="p-4 space-y-4"><div class="h-48 w-full bg-gray-100 rounded-2xl skeleton"></div><div class="flex gap-3"><div class="h-40 w-40 bg-gray-100 rounded-xl skeleton"></div><div class="h-40 w-40 bg-gray-100 rounded-xl skeleton"></div></div></div>`;
+
+            db.collection('produtos').get().then(snap => {
+                if (snap.empty) {
+                    container.innerHTML = '<div class="text-center py-20 text-gray-400">Cardápio indisponível no momento.</div>';
+                    return;
+                }
+
+                let produtos = [];
+                snap.forEach(d => {
+                    const p = d.data();
+                    if (p.ativo === false) return; // Filtra inativos
+                    produtos.push({id: d.id, ...p});
+                });
+
+                container.innerHTML = ''; 
+                navContainer.innerHTML = '';
+
+                // Agrupamento de Itens Especiais
+                const doDia = produtos.filter(p => p.tag_especial === 'do_dia');
+                const sazonais = produtos.filter(p => p.tag_especial === 'sazonal');
+                const promos = produtos.filter(p => p.tag_especial === 'promo');
+                const destaques = produtos.filter(p => p.destaque && p.tag_especial === 'normal');
+                const todasCategorias = [...new Set(produtos.map(p => p.categoria))].sort();
+
+
+                // --- 1. SEÇÃO "DO DIA" ---
+                if(doDia.length > 0) {
+                    let html = `<section class="mb-8 px-4 pt-2"><h2 class="text-xl font-serif font-black text-gray-900 mb-3 flex items-center gap-2"><span class="bg-yellow-400 text-white p-1 rounded-md shadow-sm">🌞</span> Destaques do Dia</h2><div class="space-y-4">`;
+                    doDia.forEach(p => {
+                        const dados = encodeURIComponent(JSON.stringify(p));
+                        html += `
+                        <div onclick="abrirModalProduto('${dados}')" class="relative w-full bg-white rounded-2xl shadow-lg shadow-yellow-100 overflow-hidden cursor-pointer active:scale-[0.98] transition border border-yellow-100 group">
+                            <div class="h-48 w-full relative overflow-hidden"><img src="${p.imagem}" class="img-cover group-hover:scale-105 transition duration-500" onerror="this.src='https://placehold.co/600x400'"><div class="absolute bottom-0 left-0 bg-gradient-to-t from-black/70 to-transparent w-full h-20"></div><span class="absolute top-3 right-3 bg-white/90 backdrop-blur text-gray-900 text-xs font-bold px-3 py-1 rounded-full shadow-sm">Só Hoje!</span></div>
+                            <div class="p-4 relative"><h3 class="font-bold text-gray-900 text-xl leading-tight mb-1">${p.nome}</h3><p class="text-gray-500 text-sm mb-3 line-clamp-2">${p.descricao}</p><div class="flex justify-between items-center"><span class="text-2xl font-black text-brand-600">${formatarMoeda(p.preco)}</span><button class="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-bold shadow-lg shadow-gray-200">Peça Agora</button></div></div>
+                        </div>`;
+                    });
+                    html += `</div></section>`;
+                    container.innerHTML += html;
+                }
+
+                // --- 2. SEÇÃO SAZONAL / FESTIVIDADES ---
+                if(sazonais.length > 0) {
+                    let html = `<section class="mb-8 pl-4 bg-gradient-to-r from-purple-50 to-pink-50 py-6 -mx-4 sm:mx-0 sm:rounded-xl"><h2 class="px-4 text-lg font-serif font-bold text-purple-900 mb-3 flex items-center gap-2">🎉 Edição Limitada</h2><div class="flex gap-4 overflow-x-auto hide-scroll px-4 pb-2 snap-x">`;
+                    sazonais.forEach(p => {
+                        const dados = encodeURIComponent(JSON.stringify(p));
+                        html += `
+                        <div onclick="abrirModalProduto('${dados}')" class="snap-center min-w-[160px] w-[160px] bg-white rounded-xl shadow-md overflow-hidden cursor-pointer active:scale-95 transition">
+                            <div class="h-28 w-full relative"><img src="${p.imagem}" class="img-cover" onerror="this.src='https://placehold.co/200'"></div>
+                            <div class="p-3 text-center"><h3 class="font-bold text-gray-800 text-sm leading-tight mb-1 line-clamp-2">${p.nome}</h3><span class="text-brand-600 font-bold block mt-1">${formatarMoeda(p.preco)}</span></div>
+                        </div>`;
+                    });
+                    html += `</div></section>`;
+                    container.innerHTML += html;
+                }
+
+                // --- 3. PROMOÇÕES ---
+                if(promos.length > 0) {
+                    let html = `<section class="mb-8 pl-4"><h2 class="text-lg font-serif font-bold text-red-600 mb-3 flex items-center gap-2">🏷️ Ofertas Relâmpago</h2><div class="flex gap-3 overflow-x-auto hide-scroll pr-4 pb-2">`;
+                    promos.forEach(p => {
+                        const dados = encodeURIComponent(JSON.stringify(p));
+                        const precoFinal = p.preco_promo || p.preco;
+                        const precoAntigo = p.preco_promo ? `<span class="text-xs text-gray-400 line-through mr-1">${formatarMoeda(p.preco)}</span>` : '';
+                        
+                        html += `
+                        <div onclick="abrirModalProduto('${dados}')" class="min-w-[200px] bg-white rounded-xl p-3 shadow border border-red-100 cursor-pointer active:scale-95 transition flex gap-3 items-center">
+                            <div class="w-16 h-16 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0 relative"><img src="${p.imagem}" class="img-cover"><span class="absolute bottom-0 w-full bg-red-600 text-white text-[8px] font-bold text-center py-0.5">PROMO</span></div>
+                            <div><h3 class="font-bold text-gray-800 text-sm leading-tight line-clamp-1">${p.nome}</h3><div class="mt-1">${precoAntigo}<span class="text-red-600 font-bold">${formatarMoeda(precoFinal)}</span></div></div>
+                        </div>`;
+                    });
+                    html += `</div></section>`;
+                    container.innerHTML += html;
+                }
+
+                // --- 4. FAVORITOS / DESTAQUES PADRÃO ---
+                if(destaques.length > 0) {
+                    let html = `<section class="mb-8 pl-4"><h2 class="text-lg font-serif font-bold text-gray-900 mb-3">⭐ Favoritos da Casa</h2><div class="flex gap-4 overflow-x-auto hide-scroll pb-4 pr-4 snap-x">`;
+                    destaques.forEach(p => {
+                        const dados = encodeURIComponent(JSON.stringify(p));
+                        html += `
+                        <div onclick="abrirModalProduto('${dados}')" class="snap-center min-w-[240px] bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden cursor-pointer active:scale-95 transition">
+                            <div class="h-32 w-full relative"><img src="${p.imagem}" class="img-cover" onerror="this.src='https://placehold.co/400'"></div>
+                            <div class="p-3"><h3 class="font-bold text-gray-800 leading-tight mb-1">${p.nome}</h3><div class="flex justify-between items-center mt-2"><span class="text-brand-600 font-bold">${formatarMoeda(p.preco)}</span><div class="bg-brand-50 p-1.5 rounded-full text-brand-600">Add +</div></div></div>
+                        </div>`;
+                    });
+                    html += `</div></section>`;
+                    container.innerHTML += html;
+                }
+
+                // --- 5. TODAS AS CATEGORIAS (Dinâmico) ---
+                todasCategorias.forEach(cat => {
+                    navContainer.innerHTML += `<a href="#${cat}" class="px-4 py-1.5 rounded-full border border-gray-200 bg-white text-gray-600 text-sm whitespace-nowrap active:scale-95 transition hover:border-brand-200 hover:text-brand-600">${cat}</a>`;
+                });
+
+                todasCategorias.forEach(cat => {
+                    const itensCat = produtos.filter(p => p.categoria === cat);
+                    if(itensCat.length === 0) return;
+
+                    let html = `<section id="${cat}" class="mb-6 px-4 scroll-mt-32"><h2 class="text-lg font-bold text-gray-800 mb-3 font-serif border-b border-gray-100 pb-2 uppercase tracking-wide text-xs text-gray-500">${cat}</h2><div class="space-y-3">`;
+                    itensCat.forEach(p => {
+                        const dados = encodeURIComponent(JSON.stringify(p));
+                        const precoDisplay = p.tag_especial === 'promo' ? p.preco_promo : p.preco;
+                        const corPreco = p.tag_especial === 'promo' ? 'text-red-600' : 'text-gray-900';
+                        
+                        html += `
+                        <div onclick="abrirModalProduto('${dados}')" class="bg-white rounded-xl p-3 shadow-sm border border-gray-100 flex gap-3 cursor-pointer active:scale-[0.99] transition">
+                            <div class="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0 bg-gray-100"><img src="${p.imagem}" class="img-cover" onerror="this.src='https://placehold.co/200'"></div>
+                            <div class="flex flex-col flex-grow justify-between py-1">
+                                <div><h3 class="font-bold text-gray-800 text-sm leading-tight">${p.nome}</h3><p class="text-xs text-gray-500 line-clamp-2 mt-0.5 leading-relaxed">${p.descricao}</p></div>
+                                <div class="flex justify-between items-end"><span class="font-bold ${corPreco} text-sm">${formatarMoeda(precoDisplay)}</span><span class="text-[10px] font-bold text-brand-600 bg-brand-50 px-3 py-1 rounded-full">Adicionar</span></div>
+                            </div>
+                        </div>`;
+                    });
+                    html += `</div></section>`;
+                    container.innerHTML += html;
+                });
+            });
+        }
+
+
+        // --- MODAIS E ENVIO (Mantido com Ajuste no Status) ---
+
+        window.abrirModalProduto = (dados) => {
+            produtoSelecionado = JSON.parse(decodeURIComponent(dados));
+            qtdModal = 1;
+            
+            const precoReal = (produtoSelecionado.tag_especial === 'promo' && produtoSelecionado.preco_promo) ? produtoSelecionado.preco_promo : produtoSelecionado.preco;
+            produtoSelecionado.precoFinal = precoReal; 
+
+            document.getElementById('modal-img').src = produtoSelecionado.imagem;
+            document.getElementById('modal-titulo').innerText = produtoSelecionado.nome;
+            document.getElementById('modal-desc').innerText = produtoSelecionado.descricao;
+            
+            atualizarBtnModal();
+            toggleModal('modal-produto', true);
+        }
+
+        window.mudarQtd = (n) => {
+            if(qtdModal + n >= 1) { qtdModal += n; atualizarBtnModal(); }
+        }
+
+        function atualizarBtnModal() {
+            document.getElementById('qtd-display').innerText = qtdModal;
+            document.getElementById('btn-add-carrinho').innerText = `Adicionar • ${formatarMoeda(produtoSelecionado.precoFinal * qtdModal)}`;
+        }
+
+        window.addAoCarrinho = () => {
+            const existe = carrinho.find(i => i.nome === produtoSelecionado.nome);
+            if(existe) existe.qtd += qtdModal;
+            else carrinho.push({
+                nome: produtoSelecionado.nome, 
+                preco: produtoSelecionado.precoFinal, 
+                qtd: qtdModal,
+                id: produtoSelecionado.id
+            });
+            
+            salvarCarrinho();
+            toggleModal('modal-produto', false);
+            mostrarToast("Adicionado à sacola!", "sucesso");
+        }
+
+        window.abrirCarrinho = () => {
+            const lista = document.getElementById('lista-carrinho');
+            lista.innerHTML = '';
+            let total = 0;
+            if(!carrinho.length) {
+                lista.innerHTML = '<div class="flex flex-col items-center justify-center h-full text-gray-400 space-y-4"><svg class="w-16 h-16 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg><p>Sua sacola está vazia</p></div>';
+                document.getElementById('btn-finalizar').classList.add('hidden');
+            } else {
+                document.getElementById('btn-finalizar').classList.remove('hidden');
+                carrinho.forEach((i, idx) => {
+                    total += i.preco * i.qtd;
+                    lista.innerHTML += `
+                    <div class="flex justify-between items-center py-4 border-b border-dashed border-gray-100 last:border-0">
+                        <div><p class="font-bold text-sm text-gray-800">${i.nome}</p><p class="text-xs text-gray-500">${formatarMoeda(i.preco)} un</p></div>
+                        <div class="flex items-center gap-3 bg-gray-50 rounded-lg p-1">
+                            <button onclick="mudarQtdCarrinho(${idx}, -1)" class="w-7 h-7 flex items-center justify-center text-gray-500 font-bold">-</button>
+                            <span class="text-sm font-bold w-4 text-center">${i.qtd}</span>
+                            <button onclick="mudarQtdCarrinho(${idx}, 1)" class="w-7 h-7 flex items-center justify-center text-brand-600 font-bold">+</button>
+                        </div>
+                    </div>`;
+                });
+            }
+            document.getElementById('total-carrinho').innerText = formatarMoeda(total);
+            toggleModal('modal-carrinho', true);
+            
+            // ATUALIZA O BOTÃO DE NOVO DEPOIS DE MONTAR O CARRINHO
+            atualizarStatusLoja(); 
+            if(configuracaoLoja.status === 'Aberta' && carrinho.length > 0) {
+                 document.getElementById('btn-finalizar').innerHTML = `Enviar Pedido no WhatsApp (${formatarMoeda(total)})`;
+            }
+        }
+
+        window.mudarQtdCarrinho = (idx, n) => {
+            carrinho[idx].qtd += n;
+            if(carrinho[idx].qtd <= 0) carrinho.splice(idx, 1);
+            salvarCarrinho();
+            abrirCarrinho();
+        }
+
+        // --- ENVIO (Bloqueado se Loja Fechada) ---
+        window.prepararPedido = () => {
+            if (configuracaoLoja.status === 'Fechada') {
+                toggleModal('modal-carrinho', false);
+                // Usa modal de aviso no lugar do alert
+                toggleModal('modal-aviso', true);
+                document.getElementById('aviso-titulo').innerText = "Loja Fechada";
+                document.getElementById('aviso-msg').innerText = `Obrigado pelo seu pedido, mas estamos fechados. Abrimos às ${configuracaoLoja.horario_abertura} em ${configuracaoLoja.dias}.`;
+                document.getElementById('aviso-btn').innerText = "Entendi";
+                document.getElementById('aviso-btn').onclick = () => toggleModal('modal-aviso', false);
+                return;
+            }
+            
+            // Continua o fluxo normal de pedido
+            const nome = localStorage.getItem('userName');
+            const fone = localStorage.getItem('userPhone');
+
+            if(!nome || !fone) {
+                toggleModal('modal-carrinho', false);
+                setTimeout(() => {
+                    if(confirm("Para finalizar, precisamos te identificar. Ir para Perfil?")) window.location.href = 'perfil.html';
+                }, 300);
+                return;
+            }
+
+            const btn = document.getElementById('btn-finalizar');
+            btn.innerHTML = `<svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>`;
+            btn.disabled = true;
+
+            const idVisual = `#${new Date().getDate()}${new Date().getHours()}${Math.floor(Math.random()*100)}`;
+            const total = carrinho.reduce((acc, i) => acc + (i.preco * i.qtd), 0);
+
+            const pedido = {
+                id_visual: idVisual,
+                cliente_uid: auth.currentUser ? auth.currentUser.uid : 'anonimo',
+                cliente_nome: nome,
+                cliente_telefone: fone,
+                cliente_telefone_limpo: fone.replace(/\D/g, ''),
+                itens: carrinho,
+                total: total,
+                status: 'Enviado',
+                data: new Date().toISOString()
+            };
+
+            db.collection('pedidos').add(pedido).then(() => {
+                let msg = `Olá! 🧁\n*Novo Pedido: ${idVisual}*\n\n`;
+                carrinho.forEach(i => msg += `▪ ${i.qtd}x ${i.nome}\n`);
+                msg += `\n💰 *Total: ${formatarMoeda(total)}*\n👤 ${nome}\n📱 ${fone}`;
+
+                carrinho = [];
+                salvarCarrinho();
+                toggleModal('modal-carrinho', false);
+
+                setTimeout(() => {
+                    window.open(`https://wa.me/554199705600?text=${encodeURIComponent(msg)}`, '_blank');
+                    window.location.href = 'pedidos.html';
+                }, 500);
+            }).catch(err => {
+                alert("Erro: " + err.message);
+                btn.innerText = "Tentar Novamente";
+                btn.disabled = false;
+            });
+        }
+
+        // --- UTILS (Mantido) ---
+        function salvarCarrinho() { localStorage.setItem('meuCarrinho', JSON.stringify(carrinho)); atualizarBadge(); }
+        function atualizarBadge() {
+            const b = document.getElementById('cart-badge');
+            const t = carrinho.reduce((a, i) => a + i.qtd, 0);
+            b.innerText = t;
+            if(t>0) {b.classList.remove('scale-0'); b.classList.add('scale-100');} else {b.classList.remove('scale-100'); b.classList.add('scale-0');}
+            // Chama o status da loja para atualizar o botão de finalizar
+            atualizarStatusLoja();
+        }
+        function mostrarToast(msg, tipo) {
+            const t = document.getElementById('toast');
+            t.innerHTML = `<span class="text-green-400 font-bold mr-2">✓</span> ${msg}`;
+            t.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => t.classList.add('translate-y-20', 'opacity-0'), 2500);
+        }
+        window.toggleModal = (id, abrir) => {
+            const el = document.getElementById(id);
+            if(abrir) {
+                el.classList.remove('hidden');
+                setTimeout(() => { el.querySelector('.modal-overlay').classList.remove('opacity-0'); el.querySelector('.modal-content').classList.remove('translate-y-full'); }, 10);
+            } else {
+                el.querySelector('.modal-overlay').classList.add('opacity-0'); el.querySelector('.modal-content').classList.add('translate-y-full');
+                setTimeout(() => el.classList.add('hidden'), 300);
+            }
+        }
+    </script>
 </head>
-<body>
-    <!-- Elementos decorativos -->
-    <div class="decorative-corner corner-top-left"></div>
-    <div class="decorative-corner corner-top-right"></div>
-    <div class="decorative-corner corner-bottom-left"></div>
-    <div class="decorative-corner corner-bottom-right"></div>
-    
-    <div class="decoration-circle circle-1"></div>
-    <div class="decoration-circle circle-2"></div>
-    <div class="decoration-circle circle-3"></div>
-    
-    <!-- Header -->
-    <header class="menu-header">
-        <div class="brand-wrapper fade-in">
-            <h1 class="brand-name">Delícia D'Brownie</h1>
-            <p class="brand-tagline">Experiências doces que encantam os sentidos</p>
-            <div class="header-decoration"></div>
+<body class="bg-gray-50 font-sans text-gray-800 pb-24">
+
+    <!-- Header Fixo -->
+    <header class="fixed top-0 w-full z-40 bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <img src="logo.png" class="h-10 w-10 rounded-full border border-gray-100 object-cover shadow-sm" onerror="this.src='https://placehold.co/100'">
+                <div><h1 class="font-serif font-bold text-lg leading-none tracking-tight text-gray-900">Delicia D'Brownie</h1><div id="saudacao-usuario" class="text-xs text-gray-500 mt-0.5 font-medium">Carregando...</div></div>
+            </div>
+            <button onclick="abrirCarrinho()" class="relative p-2.5 bg-gray-50 rounded-full hover:bg-gray-100 active:scale-90 transition">
+                <svg class="h-6 w-6 text-gray-700" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+                <span id="cart-badge" class="absolute top-0 right-0 bg-brand-600 text-white text-[10px] font-bold h-5 w-5 flex items-center justify-center rounded-full shadow-md border-2 border-white scale-0 transition-transform">0</span>
+            </button>
         </div>
         
-        <div class="social-info fade-in">
-            <a href="https://www.instagram.com/_delicia_de_brownie_/" target="_blank">
-                <i class="fab fa-instagram"></i> @_delicia_de_brownie_
-            </a>
-            <a href="https://wa.me/5541992480604" target="_blank">
-                <i class="fab fa-whatsapp"></i> (41) 99248-0604
-            </a>
+        <!-- AVISO DE LOJA FECHADA -->
+        <div id="aviso-loja-fechada" class="bg-red-50 text-red-700 text-center font-bold text-xs py-2 hidden">
+            <!-- Texto injetado via JS -->
+        </div>
+
+        <!-- Menu de Categorias Dinâmico -->
+        <div class="border-t border-gray-100 bg-white">
+            <div id="nav-categorias" class="container mx-auto flex gap-2 overflow-x-auto hide-scroll py-3 px-4">
+                <div class="h-8 w-20 bg-gray-100 rounded-full skeleton"></div>
+                <div class="h-8 w-20 bg-gray-100 rounded-full skeleton"></div>
+                <div class="h-8 w-20 bg-gray-100 rounded-full skeleton"></div>
+            </div>
         </div>
     </header>
-    
-    <!-- Navigation -->
-    <nav class="menu-nav">
-        <ul>
-            <li><a href="#bolos">Bolos Vulcão</a></li>
-            <li><a href="#brownies">Brownies</a></li>
-            <li><a href="#copos">Copos da Felicidade</a></li>
-        </ul>
-    </nav>
-    
-    <!-- Introduction -->
-    <div class="menu-intro fade-in">
-        <div class="menu-intro-content">
-            <h2>Conheça Nossos Produtos</h2>
-            <p>Através deste cardápio exclusivo, você irá descobrir e se apaixonar por nossas criações artesanais, preparadas com ingredientes selecionados e muito carinho. Cada mordida é uma experiência sensorial única!</p>
+
+    <main id="main-vitrine" class="container mx-auto pt-36 pb-6 min-h-[80vh]"></main>
+
+    <!-- Modal Produto -->
+    <div id="modal-produto" class="fixed inset-0 z-50 hidden flex items-end sm:items-center justify-center">
+        <div onclick="toggleModal('modal-produto', false)" class="modal-overlay absolute inset-0 bg-black/60 backdrop-blur-sm opacity-0"></div>
+        <div class="modal-content bg-white w-full max-w-md rounded-t-3xl sm:rounded-2xl overflow-hidden shadow-2xl transform translate-y-full flex flex-col max-h-[90vh]">
+            <div class="relative h-72 w-full bg-gray-100">
+                <img id="modal-img" src="" class="img-cover">
+                <button onclick="toggleModal('modal-produto', false)" class="absolute top-4 right-4 bg-black/20 hover:bg-black/40 backdrop-blur text-white p-2 rounded-full transition">✕</button>
+            </div>
+            <div class="p-6 overflow-y-auto">
+                <h2 id="modal-titulo" class="text-2xl font-serif font-bold text-gray-900 mb-2 leading-tight"></h2>
+                <p id="modal-desc" class="text-gray-500 text-sm mb-8 leading-relaxed"></p>
+                <div class="flex items-center gap-4 pt-4 border-t border-gray-100">
+                    <div class="flex items-center border border-gray-200 rounded-xl p-1 bg-gray-50"><button onclick="mudarQtd(-1)" class="p-3 text-gray-500 hover:text-brand-600 transition">-</button><span id="qtd-display" class="w-8 text-center font-bold text-lg">1</span><button onclick="mudarQtd(1)" class="p-3 text-brand-600 transition">+</button></div>
+                    <button onclick="addAoCarrinho()" id="btn-add-carrinho" class="flex-grow bg-brand-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-brand-100 active:scale-[0.98] transition">Adicionar</button>
+                </div>
+            </div>
         </div>
-    </div>
-    
-   <!-- Product Gallery -->
-<div class="product-gallery">
-    <div class="gallery-item fade-in">
-        <img src="./Fotos/foto (1).jpg" alt="Bolo Vulcão Branco">
-    </div>
-    <div class="gallery-item fade-in">
-        <img src="./Fotos/foto (1).webp" alt="Delícia D'Brownie Especial">
-    </div>
-    <div class="gallery-item fade-in">
-        <img src="./Fotos/foto (2).webp" alt="Sobremesa Artesanal">
-    </div>
-    <div class="gallery-item fade-in">
-        <img src="./Fotos/foto (4).webp" alt="Bolo Especial">
-    </div>
-    <div class="gallery-item fade-in">
-        <img src="./Fotos/foto (5).webp" alt="Bolo Vulcão de Chocolate">
-    </div>
-    <div class="gallery-item fade-in">
-        <img src="./Fotos/foto (6).webp" alt="Brownie Artesanal">
     </div>
 
-    <div class="gallery-item fade-in">
-        <img src="./Fotos/foto (8).webp" alt="Copo da Felicidade">
-    </div>
-    <div class="gallery-item fade-in">
-        <img src="./Fotos/foto (9).webp" alt="Brownie Gourmet">
-    </div>
-    <div class="gallery-item fade-in">
-        <img src="./Fotos/foto (10).webp" alt="Doce Especial">
-    </div>
-    
-</div>
-    
-    <!-- Bolos Vulcão Section -->
-    <section id="bolos" class="menu-category">
-        <div class="category-header fade-in">
-            <h2 class="category-title">Bolos Vulcão</h2>
-        </div>
-        
-        <div class="menu-items">
-            <div class="menu-item stagger-item" data-id="bolo-1" data-price="0.00">
-                <div class="item-decoration"></div>
-                <div class="item-content">
-                    <div class="item-header">
-                        <h3 class="item-title">Chocolatudo</h3>
-                        <span class="item-price">R$ 0,00</span>
-                    </div>
-                    <p class="item-description">Uma explosão de chocolate para os verdadeiros apaixonados. A combinação perfeita da massa macia com recheio intenso.</p>
-                    <div class="item-specs">
-                        <div class="spec-item">
-                            <span class="spec-label">Massa</span>
-                            <span class="spec-value">Chocolate</span>
-                        </div>
-                        <div class="spec-item">
-                            <span class="spec-label">Recheio</span>
-                            <span class="spec-value">Chocolate</span>
-                        </div>
-                        <div class="spec-item">
-                            <span class="spec-label">Finalização</span>
-                            <span class="spec-value">Brownie e granulado</span>
-                        </div>
-                    </div>
-                </div>
-                <button class="add-to-cart-btn">
-                    <i class="fas fa-plus"></i> <span class="btn-text">Adicionar ao Pedido</span>
-                </button>
-                <div class="highlight-dot dot-1"></div>
-                <div class="highlight-dot dot-2"></div>
+    <!-- Modal Carrinho -->
+    <div id="modal-carrinho" class="fixed inset-0 z-50 hidden">
+        <div onclick="toggleModal('modal-carrinho', false)" class="modal-overlay absolute inset-0 bg-black/50 backdrop-blur-sm opacity-0"></div>
+        <div class="modal-content absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.1)] h-[85vh] flex flex-col transform translate-y-full">
+            <div class="flex justify-between items-center p-6 border-b border-gray-100"><h2 class="text-xl font-bold font-serif text-gray-900">Sua Sacola</h2><button onclick="toggleModal('modal-carrinho', false)" class="text-gray-400 p-2 bg-gray-50 rounded-full">✕</button></div>
+            <div id="lista-carrinho" class="overflow-y-auto flex-grow p-6 space-y-2"></div>
+            <div class="border-t border-gray-50 p-6 bg-white pb-safe shadow-inner">
+                <div class="flex justify-between mb-4 items-end"><span class="text-gray-500 font-medium text-sm">Total do pedido</span><span id="total-carrinho" class="text-2xl font-black text-brand-600">R$ 0,00</span></div>
+                <button id="btn-finalizar" onclick="prepararPedido()" class="w-full bg-green-600 text-white py-4 rounded-xl font-bold shadow-lg shadow-green-100 active:scale-[0.98] transition flex justify-center gap-2 items-center">Enviar Pedido no WhatsApp</button>
             </div>
-            
-            <div class="menu-item stagger-item" data-id="bolo-2" data-price="0.00">
-                <div class="item-decoration"></div>
-                <div class="item-content">
-                    <div class="item-header">
-                        <h3 class="item-title">Dois Amores</h3>
-                        <span class="item-price">R$ 0,00</span>
-                    </div>
-                    <p class="item-description">O encontro perfeito entre o chocolate e a suavidade da massa branca, criando uma harmonia de sabores inesquecível.</p>
-                    <div class="item-specs">
-                        <div class="spec-item">
-                            <span class="spec-label">Massa</span>
-                            <span class="spec-value">Branca</span>
-                        </div>
-                        <div class="spec-item">
-                            <span class="spec-label">Recheio</span>
-                            <span class="spec-value">Chocolate</span>
-                        </div>
-                        <div class="spec-item">
-                            <span class="spec-label">Finalização</span>
-                            <span class="spec-value">Granulado</span>
-                        </div>
-                    </div>
-                </div>
-                <button class="add-to-cart-btn">
-                    <i class="fas fa-plus"></i> <span class="btn-text">Adicionar ao Pedido</span>
-                </button>
-                <div class="highlight-dot dot-3"></div>
-                <div class="highlight-dot dot-4"></div>
-            </div>
-            
-            <div class="menu-item stagger-item" data-id="bolo-3" data-price="0.00">
-                <div class="item-decoration"></div>
-                <div class="item-content">
-                    <div class="item-header">
-                        <h3 class="item-title">Delícia de Morango</h3>
-                        <span class="item-price">R$ 0,00</span>
-                    </div>
-                    <p class="item-description">Uma combinação refrescante que une a suavidade da massa branca com a acidez dos morangos selecionados.</p>
-                    <div class="item-specs">
-                        <div class="spec-item">
-                            <span class="spec-label">Massa</span>
-                            <span class="spec-value">Branca</span>
-                        </div>
-                        <div class="spec-item">
-                            <span class="spec-label">Recheio</span>
-                            <span class="spec-value">Creme de chocolate branco</span>
-                        </div>
-                        <div class="spec-item">
-                            <span class="spec-label">Finalização</span>
-                            <span class="spec-value">Geleia de morango e morangos</span>
-                        </div>
-                    </div>
-                </div>
-                <button class="add-to-cart-btn">
-                    <i class="fas fa-plus"></i> <span class="btn-text">Adicionar ao Pedido</span>
-                </button>
-                <div class="highlight-dot dot-1"></div>
-                <div class="highlight-dot dot-4"></div>
-            </div>
-            
-            <div class="menu-item stagger-item" data-id="bolo-4" data-price="0.00">
-                <div class="item-decoration"></div>
-                <div class="item-content">
-                    <div class="item-header">
-                        <h3 class="item-title">Cenourinha</h3>
-                        <span class="item-price">R$ 0,00</span>
-                    </div>
-                    <p class="item-description">O tradicional bolo de cenoura reinventado em formato vulcão, com brigadeiro cremoso que derrete na boca.</p>
-                    <div class="item-specs">
-                        <div class="spec-item">
-                            <span class="spec-label">Massa</span>
-                            <span class="spec-value">Cenoura</span>
-                        </div>
-                        <div class="spec-item">
-                            <span class="spec-label">Recheio</span>
-                            <span class="spec-value">Brigadeiro de chocolate</span>
-                        </div>
-                        <div class="spec-item">
-                            <span class="spec-label">Finalização</span>
-                            <span class="spec-value">Granulado</span>
-                        </div>
-                    </div>
-                </div>
-                <button class="add-to-cart-btn">
-                    <i class="fas fa-plus"></i> <span class="btn-text">Adicionar ao Pedido</span>
-                </button>
-                <div class="highlight-dot dot-2"></div>
-                <div class="highlight-dot dot-3"></div>
-            </div>
-            
-            <div class="menu-item stagger-item" data-id="bolo-5" data-price="0.00">
-                <div class="item-decoration"></div>
-                <div class="item-content">
-                    <div class="item-header">
-                        <h3 class="item-title">Ninho com Avelã</h3>
-                        <span class="item-price">R$ 0,00</span>
-                    </div>
-                    <p class="item-description">A combinação mais aclamada e sofisticada: a delicadeza do leite Ninho com a intensidade do creme de avelã.</p>
-                    <div class="item-specs">
-                        <div class="spec-item">
-                            <span class="spec-label">Massa</span>
-                            <span class="spec-value">Branca</span>
-                        </div>
-                        <div class="spec-item">
-                            <span class="spec-label">Recheio</span>
-                            <span class="spec-value">Creme de chocolate branco</span>
-                        </div>
-                        <div class="spec-item">
-                            <span class="spec-label">Finalização</span>
-                            <span class="spec-value">Leite em pó ninho com creme de avelã</span>
-                        </div>
-                    </div>
-                </div>
-                <button class="add-to-cart-btn">
-                    <i class="fas fa-plus"></i> <span class="btn-text">Adicionar ao Pedido</span>
-                </button>
-                <div class="highlight-dot dot-1"></div>
-                <div class="highlight-dot dot-3"></div>
-            </div>
-            
-            <div class="menu-item stagger-item" data-id="bolo-6" data-price="0.00">
-                <div class="item-decoration"></div>
-                <div class="item-content">
-                    <div class="item-header">
-                        <h3 class="item-title">Red Velvet</h3>
-                        <span class="item-price">R$ 0,00</span>
-                    </div>
-                    <p class="item-description">Elegância em cada pedaço. A textura aveludada da massa vermelha combinada com creme de chocolate branco.</p>
-                    <div class="item-specs">
-                        <div class="spec-item">
-                            <span class="spec-label">Massa</span>
-                            <span class="spec-value">Red Velvet</span>
-                        </div>
-                        <div class="spec-item">
-                            <span class="spec-label">Recheio</span>
-                            <span class="spec-value">Creme de chocolate branco</span>
-                        </div>
-                        <div class="spec-item">
-                            <span class="spec-label">Finalização</span>
-                            <span class="spec-value">Creme thesse e morangos</span>
-                        </div>
-                    </div>
-                </div>
-                <button class="add-to-cart-btn">
-                    <i class="fas fa-plus"></i> <span class="btn-text">Adicionar ao Pedido</span>
-                </button>
-                <div class="highlight-dot dot-2"></div>
-                <div class="highlight-dot dot-4"></div>
-            </div>
-        </div>
-    </section>
-    
-    <!-- Brownies Section -->
-    <section id="brownies" class="menu-category">
-        <div class="category-header fade-in">
-            <h2 class="category-title">Brownies</h2>
-        </div>
-        
-        <div class="menu-items">
-            <div class="menu-item stagger-item" data-id="brownie-1" data-price="0.00">
-                <div class="item-decoration"></div>
-                <div class="item-content">
-                    <div class="item-header">
-                        <h3 class="item-title">Sanduíche</h3>
-                        <span class="item-price">R$ 0,00</span>
-                    </div>
-                    <p class="item-description">Duas camadas de brownie envolvendo recheios incríveis. Uma tentação irresistível para os amantes de chocolate.</p>
-                    <div class="item-specs">
-                        <div class="spec-item">
-                            <span class="spec-label">Sabores</span>
-                            <span class="spec-value">Chocolate brend</span>
-                        </div>
-                        <div class="spec-item">
-                            <span class="spec-label"></span>
-                            <span class="spec-value">Chocolate branco</span>
-                        </div>
-                        <div class="spec-item">
-                            <span class="spec-label"></span>
-                            <span class="spec-value">Doce de leite</span>
-                        </div>
-                    </div>
-                </div>
-                <button class="add-to-cart-btn">
-                    <i class="fas fa-plus"></i> <span class="btn-text">Adicionar ao Pedido</span>
-                </button>
-                <div class="highlight-dot dot-1"></div>
-                <div class="highlight-dot dot-3"></div>
-            </div>
-            
-            <div class="menu-item stagger-item" data-id="brownie-2" data-price="0.00">
-                <div class="item-decoration"></div>
-                <div class="item-content">
-                    <div class="item-header">
-                        <h3 class="item-title">Marmitinha</h3>
-                        <span class="item-price">R$ 0,00</span>
-                    </div>
-                    <p class="item-description">Brownies em porções individuais com coberturas luxuosas. Perfeito para presentear ou se deliciar a qualquer hora.</p>
-                    <div class="item-specs">
-                        <div class="spec-item">
-                            <span class="spec-label">Sabores</span>
-                            <span class="spec-value">Ferrero Rocher</span>
-                        </div>
-                        <div class="spec-item">
-                            <span class="spec-label"></span>
-                            <span class="spec-value">Ninho com creme de avelã</span>
-                        </div>
-                        <div class="spec-item">
-                            <span class="spec-label"></span>
-                            <span class="spec-value">Kinder bueno</span>
-                        </div>
-                    </div>
-                </div>
-                <button class="add-to-cart-btn">
-                    <i class="fas fa-plus"></i> <span class="btn-text">Adicionar ao Pedido</span>
-                </button>
-                <div class="highlight-dot dot-2"></div>
-                <div class="highlight-dot dot-4"></div>
-            </div>
-        </div>
-    </section>
-    
-    <!-- Copos da Felicidade Section -->
-    <section id="copos" class="menu-category">
-        <div class="category-header fade-in">
-            <h2 class="category-title">Copos da Felicidade</h2>
-        </div>
-        
-        <div class="menu-items">
-            <div class="menu-item stagger-item" data-id="copo-1" data-price="0.00">
-                <div class="item-decoration"></div>
-                <div class="item-content">
-                    <div class="item-header">
-                        <h3 class="item-title">Morango com Brownie</h3>
-                        <span class="item-price">R$ 0,00</span>
-                    </div>
-                    <p class="item-description">Camadas de brownie, creme aveludado e morangos frescos que formam uma sobremesa inesquecível em cada colherada.</p>
-                </div>
-                <button class="add-to-cart-btn">
-                    <i class="fas fa-plus"></i> <span class="btn-text">Adicionar ao Pedido</span>
-                </button>
-                <div class="highlight-dot dot-1"></div>
-                <div class="highlight-dot dot-3"></div>
-            </div>
-            
-            <div class="menu-item stagger-item" data-id="copo-2" data-price="0.00">
-                <div class="item-decoration"></div>
-                <div class="item-content">
-                    <div class="item-header">
-                        <h3 class="item-title">Surpresa de Uva</h3>
-                        <span class="item-price">R$ 0,00</span>
-                    </div>
-                    <p class="item-description">O equilíbrio perfeito entre o doce do creme e a acidez das uvas frescas, criando uma experiência surpreendente.</p>
-                </div>
-                <button class="add-to-cart-btn">
-                    <i class="fas fa-plus"></i> <span class="btn-text">Adicionar ao Pedido</span>
-                </button>
-                <div class="highlight-dot dot-2"></div>
-                <div class="highlight-dot dot-4"></div>
-            </div>
-        </div>
-    </section>
-    
-    <!-- Call to Action -->
-    <div class="cta-section">
-        <div class="cta-decoration"></div>
-        <div class="cta-content">
-            <h2 class="cta-title">Faça seu pedido agora!</h2>
-            <p class="cta-text">Entre em contato conosco pelo WhatsApp e descubra como nossos produtos artesanais podem adoçar seu dia.</p>
-            <a href="https://wa.me/5541992480604" class="cta-button" target="_blank">Fazer pedido</a>
         </div>
     </div>
-    
-    <!-- Footer -->
-<footer class="menu-footer">
-    <div class="footer-decoration"></div>
-    <div class="footer-content">
-        <h3 class="footer-brand">Delícia D'Brownie</h3>
-        
-        <div class="footer-contact">
-            <p><i class="fas fa-phone"></i> (41) 99248-0604</p>
-            <p><i class="fas fa-map-marker-alt"></i> Curitiba, PR</p>
+
+    <!-- Modal Aviso (Para loja fechada) -->
+    <div id="modal-aviso" class="fixed inset-0 z-[60] hidden flex items-center justify-center px-4">
+        <div class="modal-overlay absolute inset-0 bg-black/70 backdrop-blur-sm opacity-0"></div>
+        <div class="modal-content bg-white w-full max-w-sm rounded-2xl p-6 text-center shadow-2xl transform scale-95 opacity-0 relative">
+            <div class="w-14 h-14 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+            </div>
+            <h3 id="aviso-titulo" class="text-lg font-bold text-gray-900 mb-2">Loja Fechada</h3>
+            <p id="aviso-msg" class="text-gray-500 text-sm mb-6">Estamos fora do horário de funcionamento. Por favor, volte mais tarde.</p>
+            <button id="aviso-btn" class="w-full bg-gray-900 text-white py-3 rounded-xl font-bold active:scale-95 transition">Entendi</button>
         </div>
-        
-        <div class="footer-social">
-            <a href="https://www.instagram.com/_delicia_de_brownie_/" target="_blank"><i class="fab fa-instagram"></i></a>
-            <a href="https://wa.me/5541992480604" target="_blank"><i class="fab fa-whatsapp"></i></a>
-            <a href="#" id="admin-access" class="admin-link"><i class="fas fa-cookie-bite"></i></a>
-        </div>
-        
-        <div class="developer-credits">
-            <p>Desenvolvido por <a href="https://kauanlauer.com.br" target="_blank">Kauan Lauer</a></p>
-        </div>
-        
-        <p class="copyright">© 2025 Delícia D'Brownie - Todos os direitos reservados</p>
     </div>
-</footer>
 
-<!-- Script para o acesso administrativo -->
-<script>
-document.getElementById('admin-access').addEventListener('click', function(e) {
-    e.preventDefault();
-    const password = prompt('Digite a senha de acesso:');
-    
-    if (password === '1230') {
-        window.location.href = 'admin.html';
-    } else if (password !== null) {
-        alert('Senha incorreta!');
-    }
-});
-</script>
+    <div id="toast" class="fixed bottom-24 left-1/2 transform -translate-x-1/2 bg-gray-900/95 text-white px-6 py-3.5 rounded-full shadow-2xl z-[60] text-sm font-bold transition-all duration-500 translate-y-20 opacity-0 flex items-center backdrop-blur border border-white/10"></div>
 
-<!-- Adicionar ao final do body, antes dos scripts -->
-
-<!-- Floating Cart Button -->
-<div class="cart-button">
-  <span class="cart-count">0</span>
-  <i class="fas fa-shopping-cart"></i>
-</div>
-
-<!-- Order Modal -->
-<div class="order-modal" id="orderModal">
-  <div class="modal-content">
-      <div class="modal-header">
-          <h3>Seu Pedido</h3>
-          <button class="close-modal"><i class="fas fa-times"></i></button>
-      </div>
-      
-      <div class="modal-body">
-          <!-- Cart Items -->
-          <div class="cart-items">
-              <div class="cart-empty">
-                  <i class="far fa-sad-tear"></i>
-                  <p>Seu carrinho está vazio</p>
-                  <p class="cart-tip">Clique em "Adicionar ao Pedido" nos produtos que desejar</p>
-              </div>
-              <div class="cart-list">
-                  <!-- Items will be added here -->
-              </div>
-          </div>
-          
-          <form id="orderForm" class="order-form">
-            <h4>Informações do Pedido</h4>
-            
-            <div class="form-group">
-                <label for="customerName">Nome completo</label>
-                <input type="text" id="customerName" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="customerPhone">WhatsApp</label>
-                <input type="tel" id="customerPhone" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="customerNotes">Observações (opcional)</label>
-                <textarea id="customerNotes" rows="2"></textarea>
-            </div>
-            
-            <div class="cart-total">
-                <span>Total de itens:</span>
-                <span class="total-items">0</span>
-            </div>
-            
-            <button type="submit" class="order-submit-btn">
-                <i class="fab fa-whatsapp"></i> Enviar Pedido pelo WhatsApp
-            </button>
-            
-            <div class="pickup-info">
-                <p><i class="fas fa-info-circle"></i> A retirada do pedido é por conta do cliente no endereço: Coronel João Rodrigues da Silva, 202 - Lapa</p>
-            </div>
-        </form>
-      </div>
-  </div>
-</div>
-
-   <!-- Font Awesome -->
-   <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/js/all.min.js"></script>
-   <!-- Supabase Client -->
-   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-   <!-- Scripts -->
-   <script src="db.js"></script>
-   <script src="script.js"></script>
+    <footer class="fixed bottom-0 w-full bg-white border-t border-gray-100 z-40 pb-safe shadow-[0_-4px_20px_rgba(0,0,0,0.02)]">
+        <nav class="flex justify-around items-center p-1">
+            <a href="index.html" class="flex flex-col items-center w-16 py-2 text-brand-600 transition"><svg class="h-6 w-6 mb-0.5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z"/></svg><span class="text-[10px] font-bold">Início</span></a>
+            <a href="pedidos.html" class="flex flex-col items-center w-16 py-2 text-gray-400 hover:text-brand-600 transition active:scale-90"><svg class="h-6 w-6 mb-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg><span class="text-[10px] font-medium">Pedidos</span></a>
+            <a href="perfil.html" class="flex flex-col items-center w-16 py-2 text-gray-400 hover:text-brand-600 transition active:scale-90"><div id="avatar-letra" class="h-6 w-6 mb-0.5 rounded-full bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500">?</div><span class="text-[10px] font-medium">Perfil</span></a>
+        </nav>
+    </footer>
 </body>
 </html>

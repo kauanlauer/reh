@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cozinha - Pedidos e Relatórios</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- FIREBASE -->
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCM9tMvnRV-o7X66euCBKuLmuz-kIrClWY",
+            authDomain: "renata-26079.firebaseapp.com",
+            projectId: "renata-26079",
+            storageBucket: "renata-26079.firebasestorage.app",
+            messagingSenderId: "995787482442",
+            appId: "1:995787482442:web:fdbca404a0e251cc278db3"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        const formatarMoeda = (v) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+        
+        let configuracaoGlobal = { status: 'Fechada', horario_abertura: '18:00', horario_fechamento: '23:00', dias: 'Seg-Sab' };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            auth.onAuthStateChanged(user => { if (!user) auth.signInAnonymously(); });
+            
+            initRealtimeListener();
+            carregarConfiguracoes();
+            mostrarPainel('pedidos'); // Padrão: mostra Kanban de Pedidos
+
+            // Eventos de Navegação
+            document.getElementById('nav-pedidos').addEventListener('click', () => mostrarPainel('pedidos'));
+            document.getElementById('nav-relatorios').addEventListener('click', () => mostrarPainel('relatorios'));
+
+            // Eventos de Configuração
+            document.getElementById('form-config').addEventListener('submit', salvarConfiguracoes);
+            document.getElementById('btn-toggle-status').addEventListener('click', toggleStatusLoja);
+
+            // Eventos de Relatórios
+            document.getElementById('btn-filtrar-relatorio').addEventListener('click', gerarRelatorio);
+
+            // Definir datas padrão (Hoje)
+            const hoje = new Date().toISOString().split('T')[0];
+            document.getElementById('data-inicio').value = hoje;
+            document.getElementById('data-fim').value = hoje;
+            gerarRelatorio(); // Gera o relatório inicial
+        });
+
+        // --- NAVEGAÇÃO ENTRE PAINÉIS ---
+        function mostrarPainel(painel) {
+            document.getElementById('painel-pedidos').classList.add('hidden');
+            document.getElementById('painel-relatorios').classList.add('hidden');
+            document.getElementById('nav-pedidos').classList.remove('border-b-2', 'border-pink-600', 'text-pink-600');
+            document.getElementById('nav-relatorios').classList.remove('border-b-2', 'border-pink-600', 'text-pink-600');
+
+            if (painel === 'pedidos') {
+                document.getElementById('painel-pedidos').classList.remove('hidden');
+                document.getElementById('nav-pedidos').classList.add('border-b-2', 'border-pink-600', 'text-pink-600');
+            } else if (painel === 'relatorios') {
+                document.getElementById('painel-relatorios').classList.remove('hidden');
+                document.getElementById('nav-relatorios').classList.add('border-b-2', 'border-pink-600', 'text-pink-600');
+            }
+        }
+
+        // --- RELATÓRIOS ---
+        function gerarRelatorio() {
+            const inicio = document.getElementById('data-inicio').value;
+            const fim = document.getElementById('data-fim').value;
+            const lista = document.getElementById('lista-relatorios');
+            const statsVendas = document.getElementById('stats-vendas-periodo');
+            
+            lista.innerHTML = '<p class="text-center text-gray-500 py-4">Gerando dados...</p>';
+            statsVendas.innerText = formatarMoeda(0);
+
+            // Adiciona 23:59:59 ao final do dia para incluir pedidos até o final
+            const dataFim = new Date(fim + 'T23:59:59.999Z').toISOString();
+            const dataInicio = new Date(inicio + 'T00:00:00.000Z').toISOString();
+
+            db.collection('pedidos')
+                .where('data', '>=', dataInicio)
+                .where('data', '<=', dataFim)
+                .orderBy('data', 'desc')
+                .get()
+                .then(snap => {
+                    lista.innerHTML = '';
+                    let totalVendido = 0;
+                    const vendasConcluidas = snap.docs.filter(doc => doc.data().status === 'Finalizado');
+
+                    if (vendasConcluidas.length === 0) {
+                         lista.innerHTML = '<p class="text-center text-gray-400 py-10">Nenhuma venda concluída no período.</p>';
+                         return;
+                    }
+
+                    const resumoProdutos = {};
+
+                    vendasConcluidas.forEach(doc => {
+                        const p = doc.data();
+                        totalVendido += p.total;
+
+                        // Resumo por Produto
+                        p.itens.forEach(item => {
+                            if (!resumoProdutos[item.nome]) {
+                                resumoProdutos[item.nome] = { qtd: 0, total: 0 };
+                            }
+                            resumoProdutos[item.nome].qtd += item.qtd;
+                            resumoProdutos[item.nome].total += item.qtd * item.preco;
+                        });
+                    });
+
+                    statsVendas.innerText = formatarMoeda(totalVendido);
+                    
+                    // Converte e ordena resumo
+                    let topProdutos = Object.keys(resumoProdutos).map(nome => ({
+                        nome,
+                        ...resumoProdutos[nome]
+                    })).sort((a, b) => b.qtd - a.qtd);
+
+                    // Renderiza Top Produtos
+                    lista.innerHTML = topProdutos.map((item, idx) => `
+                        <div class="flex justify-between items-center bg-white p-3 rounded-lg shadow-sm border border-gray-100 mb-2">
+                            <span class="font-bold text-gray-800">${idx + 1}. ${item.nome}</span>
+                            <div class="text-right">
+                                <span class="block text-sm font-bold text-pink-600">${formatarMoeda(item.total)}</span>
+                                <span class="block text-xs text-gray-500">${item.qtd} unidades vendidas</span>
+                            </div>
+                        </div>
+                    `).join('');
+                })
+                .catch(err => {
+                    console.error("Erro no relatório:", err);
+                    lista.innerHTML = '<p class="text-center text-red-500 py-4">Erro ao buscar dados do relatório.</p>';
+                });
+        }
+        
+        // --- FUNÇÕES DE CONFIGURAÇÃO DA LOJA (MANTIDAS) ---
+        function carregarConfiguracoes() {
+            db.collection('config').doc('loja').onSnapshot(doc => {
+                if (doc.exists) {
+                    configuracaoGlobal = doc.data();
+                    document.getElementById('horario-abertura').value = configuracaoGlobal.horario_abertura || '18:00';
+                    document.getElementById('horario-fechamento').value = configuracaoGlobal.horario_fechamento || '23:00';
+                    document.getElementById('dias-funcionamento').value = configuracaoGlobal.dias || 'Seg-Sab';
+                    atualizarBotaoStatus();
+                } else { salvarConfiguracoes(null, true); }
+            });
+        }
+
+        function atualizarBotaoStatus() {
+            const btn = document.getElementById('btn-toggle-status');
+            const statusDisplay = document.getElementById('status-loja-display');
+
+            if (configuracaoGlobal.status === 'Aberta') {
+                btn.classList.remove('bg-red-500', 'hover:bg-red-600');
+                btn.classList.add('bg-green-600', 'hover:bg-green-700');
+                btn.innerText = 'FECHAR LOJA';
+                statusDisplay.innerText = 'ABERTA';
+                statusDisplay.classList.remove('text-red-600', 'bg-red-100');
+                statusDisplay.classList.add('text-green-600', 'bg-green-100');
+            } else {
+                btn.classList.remove('bg-green-600', 'hover:bg-green-700');
+                btn.classList.add('bg-red-500', 'hover:bg-red-600');
+                btn.innerText = 'ABRIR LOJA';
+                statusDisplay.innerText = 'FECHADA';
+                statusDisplay.classList.remove('text-green-600', 'bg-green-100');
+                statusDisplay.classList.add('text-red-600', 'bg-red-100');
+            }
+        }
+
+        function salvarConfiguracoes(e, isDefault = false) {
+            if (e) e.preventDefault();
+            const novoHorario = {
+                horario_abertura: document.getElementById('horario-abertura').value,
+                horario_fechamento: document.getElementById('horario-fechamento').value,
+                dias: document.getElementById('dias-funcionamento').value,
+                status: configuracaoGlobal.status || 'Fechada' 
+            };
+            db.collection('config').doc('loja').set(novoHorario, { merge: true })
+                .then(() => { if (!isDefault) alert("Configurações de horário salvas!"); })
+                .catch(err => console.error("Erro ao salvar config:", err));
+        }
+
+        function toggleStatusLoja() {
+            const novoStatus = configuracaoGlobal.status === 'Aberta' ? 'Fechada' : 'Aberta';
+            db.collection('config').doc('loja').update({ status: novoStatus })
+                .then(() => { alert(`Loja agora está ${novoStatus}!`); })
+                .catch(err => console.error("Erro ao mudar status:", err));
+        }
+        
+        // --- FUNÇÕES DE PEDIDOS (MANTIDAS) ---
+        function initRealtimeListener() {
+            db.collection('pedidos').orderBy('data', 'desc').limit(50)
+                .onSnapshot(snapshot => {
+                    const pedidos = [];
+                    snapshot.forEach(doc => pedidos.push({ id_doc: doc.id, ...doc.data() }));
+                    atualizarQuadro(pedidos);
+                });
+        }
+
+        function atualizarQuadro(pedidos) {
+            const novos = document.getElementById('col-novos');
+            const prep = document.getElementById('col-prep');
+            const prontos = document.getElementById('col-prontos');
+
+            novos.innerHTML = prep.innerHTML = prontos.innerHTML = '';
+
+            pedidos.forEach(p => {
+                const card = criarCard(p);
+                if (p.status === 'Enviado') novos.innerHTML += card;
+                else if (p.status === 'Produzindo') prep.innerHTML += card;
+                else if (p.status === 'Finalizado') prontos.innerHTML += card;
+            });
+        }
+
+        function criarCard(p) {
+            const itensHtml = p.itens.map(i => `<div class="flex justify-between text-sm border-b border-gray-100 py-1"><span>${i.qtd}x ${i.nome}</span></div>`).join('');
+            const hora = new Date(p.data).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            const dadosSafe = encodeURIComponent(JSON.stringify(p));
+
+            let botao = '';
+            if (p.status === 'Enviado') {
+                botao = `<button onclick="mudarStatus('${p.id_doc}', 'Produzindo', '${dadosSafe}')" class="w-full mt-2 bg-blue-600 text-white py-2 rounded font-bold hover:bg-blue-700">Aceitar e Preparar ▶</button>`;
+            } else if (p.status === 'Produzindo') {
+                botao = `<button onclick="mudarStatus('${p.id_doc}', 'Finalizado', '${dadosSafe}')" class="w-full mt-2 bg-green-600 text-white py-2 rounded font-bold hover:bg-green-700">Finalizar Pedido ✓</button>`;
+            } else {
+                botao = `<div class="text-center text-xs text-gray-400 mt-2 font-bold">Entregue</div>`;
+            }
+
+            let btnZap = '';
+            if(p.cliente_telefone) {
+                const num = p.cliente_telefone.replace(/\D/g, '');
+                const linkZap = `https://wa.me/55${num}`; 
+                btnZap = `<a href="${linkZap}" target="_blank" class="ml-2 text-green-500 hover:text-green-700 bg-green-50 p-1 rounded"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.463 1.065 2.876 1.213 3.074.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg></a>`;
+            }
+
+            return `
+                <div class="bg-white p-4 rounded-lg shadow mb-4 border-l-4 ${p.status === 'Enviado' ? 'border-yellow-400' : (p.status === 'Produzindo' ? 'border-blue-500' : 'border-green-500')}">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <span class="bg-gray-100 text-gray-600 text-xs font-bold px-2 py-1 rounded">${p.id_visual}</span>
+                            <div class="flex items-center mt-1">
+                                <h4 class="font-bold text-gray-800">${p.cliente_nome}</h4>
+                                ${btnZap}
+                            </div>
+                        </div>
+                        <span class="text-xs font-bold text-gray-400">${hora}</span>
+                    </div>
+                    <div class="bg-gray-50 p-2 rounded mb-2">${itensHtml}</div>
+                    <div class="flex justify-between items-center font-bold text-gray-700">
+                        <span>Total:</span>
+                        <span>${formatarMoeda(p.total)}</span>
+                    </div>
+                    ${botao}
+                </div>
+            `;
+        }
+
+        window.mudarStatus = (id, novoStatus, dadosJson) => {
+            db.collection('pedidos').doc(id).update({ status: novoStatus });
+        }
+    </script>
+</head>
+<body class="bg-gray-100 font-sans h-screen flex flex-col">
+    <!-- BARRA FIXA DO TOPO COM CONTROLES -->
+    <header class="bg-white shadow-lg p-4 z-20 flex-shrink-0">
+        <div class="flex justify-between items-center mb-4">
+            <h1 class="font-bold text-gray-800 text-lg">Centro de Pedidos</h1>
+            <nav class="text-sm flex gap-4">
+                <!-- Link para Produtos -->
+                <a href="admin-produtos.html" target="_blank" class="text-gray-500 hover:text-pink-600 font-bold">Ver Produtos ↗</a>
+                <!-- Link para Loja -->
+                <a href="index.html" target="_blank" class="text-pink-600 font-bold">Ver Loja ↗</a>
+            </nav>
+        </div>
+
+        <!-- PAINEL DE CONTROLE RÁPIDO -->
+        <div class="bg-gray-50 p-4 rounded-xl border border-gray-200">
+            <div class="flex justify-between items-center mb-4">
+                <div class="flex items-center gap-2">
+                    <span class="font-bold text-gray-700">Status da Loja:</span>
+                    <span id="status-loja-display" class="text-sm font-bold px-3 py-1 rounded-full transition-colors">FECHADA</span>
+                </div>
+                <button id="btn-toggle-status" class="bg-red-500 text-white text-sm font-bold px-4 py-2 rounded-lg hover:bg-red-600 transition shadow">
+                    ABRIR LOJA
+                </button>
+            </div>
+            
+            <details>
+                <summary class="text-xs text-gray-500 font-bold cursor-pointer">Configurar Horários e Dias</summary>
+                <form id="form-config" class="mt-3 space-y-2 text-sm">
+                    <div class="flex gap-4">
+                        <label class="block w-1/2">
+                            <span class="text-xs text-gray-500">Abertura:</span>
+                            <input type="time" id="horario-abertura" required class="w-full p-2 border rounded">
+                        </label>
+                        <label class="block w-1/2">
+                            <span class="text-xs text-gray-500">Fechamento:</span>
+                            <input type="time" id="horario-fechamento" required class="w-full p-2 border rounded">
+                        </label>
+                    </div>
+                    <div>
+                        <label class="block">
+                            <span class="text-xs text-gray-500">Dias (Ex: Seg-Sab):</span>
+                            <input type="text" id="dias-funcionamento" required class="w-full p-2 border rounded" placeholder="Seg-Sex, Dom">
+                        </label>
+                    </div>
+                    <button type="submit" class="w-full bg-gray-700 text-white text-sm py-2 rounded font-bold hover:bg-gray-800 transition">Salvar Horários</button>
+                </form>
+            </details>
+        </div>
+    </header>
+
+    <!-- NAVEGAÇÃO INTERNA: PEDIDOS / RELATÓRIOS -->
+    <nav class="flex px-4 py-2 bg-white border-b border-gray-200 sticky top-[208px] z-10">
+        <button id="nav-pedidos" class="px-4 py-2 text-sm font-bold border-b-2 border-pink-600 text-pink-600 transition">Kanban de Pedidos</button>
+        <button id="nav-relatorios" class="px-4 py-2 text-sm font-bold text-gray-500 hover:text-pink-600 hover:border-b-2 hover:border-pink-300 transition">Relatórios</button>
+    </nav>
+
+
+    <!-- PAINEL DE PEDIDOS (KANBAN) -->
+    <div id="painel-pedidos" class="flex-grow overflow-hidden flex p-4 gap-4">
+        <div class="flex-1 flex flex-col bg-gray-200 rounded-xl"><div class="p-3 font-bold text-gray-600 border-b border-gray-300"><span>🔔 Novos</span></div><div id="col-novos" class="flex-1 overflow-y-auto p-3"></div></div>
+        <div class="flex-1 flex flex-col bg-blue-100 rounded-xl"><div class="p-3 font-bold text-blue-800 border-b border-blue-200"><span>👨‍🍳 Preparando</span></div><div id="col-prep" class="flex-1 overflow-y-auto p-3"></div></div>
+        <div class="flex-1 flex flex-col bg-green-100 rounded-xl"><div class="p-3 font-bold text-green-800 border-b border-green-200"><span>🚀 Prontos</span></div><div id="col-prontos" class="flex-1 overflow-y-auto p-3 opacity-80"></div></div>
+    </div>
+    
+    <!-- PAINEL DE RELATÓRIOS -->
+    <div id="painel-relatorios" class="p-4 hidden overflow-y-auto max-w-4xl mx-auto">
+        <h3 class="text-xl font-bold text-gray-800 mb-4">Relatório de Vendas Concluídas</h3>
+        
+        <!-- FILTROS -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100 mb-6">
+            <div class="grid grid-cols-3 gap-4 items-end">
+                <label class="block">
+                    <span class="text-xs font-bold text-gray-500">Data Início:</span>
+                    <input type="date" id="data-inicio" class="w-full p-2 border rounded-lg">
+                </label>
+                <label class="block">
+                    <span class="text-xs font-bold text-gray-500">Data Fim:</span>
+                    <input type="date" id="data-fim" class="w-full p-2 border rounded-lg">
+                </label>
+                <button id="btn-filtrar-relatorio" class="bg-gray-800 text-white font-bold py-2.5 rounded-lg hover:bg-gray-900 active:scale-95 transition">
+                    Filtrar
+                </button>
+            </div>
+        </div>
+
+        <!-- STATS E RESULTADOS -->
+        <div class="grid grid-cols-2 gap-4 mb-6">
+            <div class="bg-green-100 p-4 rounded-xl border border-green-200">
+                <p class="text-sm font-bold text-green-800 uppercase">Total Vendido (Período)</p>
+                <span id="stats-vendas-periodo" class="text-3xl font-black text-green-700">R$ 0,00</span>
+            </div>
+            <div class="bg-pink-100 p-4 rounded-xl border border-pink-200">
+                 <p class="text-sm font-bold text-pink-800 uppercase">Top Produtos Mais Vendidos</p>
+                 <p class="text-sm text-pink-700">(Contagem por Unidade)</p>
+            </div>
+        </div>
+
+        <h4 class="text-lg font-bold text-gray-700 mb-3">Resumo por Produto</h4>
+        <div id="lista-relatorios" class="space-y-2">
+            <!-- Dados do relatório injetados aqui -->
+        </div>
+
+    </div>
+
+</body>
+</html>
