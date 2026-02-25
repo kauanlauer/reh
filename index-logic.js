@@ -15,6 +15,8 @@ let todosProdutos = [];
 let produtoSelecionado = null, qtdModal = 1;
 let filtroFavoritosAtivo = false;
 let pedidoEmEnvio = false;
+let menuCategoriaAtual = 'topo';
+let scrollSpyFrame = null;
 
 // Utilitários
 const sanitizarId = (str) => str.replace(/[^a-zA-Z0-9]/g, '-').toLowerCase();
@@ -50,10 +52,22 @@ document.addEventListener('DOMContentLoaded', () => {
             header.classList.add('shadow-sm', 'glass-effect');
         }
         lastScroll = currentScroll;
+        agendarAtualizacaoMenuCategorias();
     });
 
     // Filtra a vitrine conforme o usuário digita na busca
     document.getElementById('search-input').addEventListener('input', (e) => filtrarVitrine(e.target.value.toLowerCase()));
+
+    const quickLoginForm = document.getElementById('quick-login-form');
+    if (quickLoginForm) {
+        quickLoginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const input = document.getElementById('quick-login-phone');
+            await loginComTelefone(input?.value || '');
+        });
+    }
+
+    atualizarVisibilidadeLoginRapido();
 });
 
 async function initClienteSessao() {
@@ -67,27 +81,77 @@ async function initClienteSessao() {
             userPoints = parseInt(local.pontos || 0, 10) || 0;
             atualizarSaudacao();
             atualizarPontosUI();
+            atualizarVisibilidadeLoginRapido();
         }
 
         if (local?.telefone_limpo || local?.telefone) {
-            const remoto = await clienteSession.carregarDoFirebase(local.telefone_limpo || local.telefone);
-            if (remoto) {
-                clienteAtual = remoto;
-                userPoints = parseInt(remoto.pontos || 0, 10) || 0;
-                atualizarSaudacao();
-                atualizarPontosUI();
-            }
-
-            const favoritosConta = await clienteSession.carregarFavoritos(local.telefone_limpo || local.telefone);
-            const favoritosCombinados = dedupeIds([...favoritos, ...favoritosConta]);
-            favoritos = favoritosCombinados;
-            localStorage.setItem('meusFavoritos', JSON.stringify(favoritos));
-            if (favoritosCombinados.length !== favoritosConta.length) {
-                await clienteSession.salvarFavoritos(favoritosCombinados, local.telefone_limpo || local.telefone);
-            }
+            await carregarSessaoPorTelefone(local.telefone_limpo || local.telefone);
         }
     } catch (e) {
         console.warn('Falha ao sincronizar sessao do cliente:', e);
+    }
+}
+
+function atualizarVisibilidadeLoginRapido() {
+    const form = document.getElementById('quick-login-form');
+    if (!form) return;
+
+    const sessao = clienteSession ? clienteSession.obterCliente() : null;
+    const logado = Boolean(
+        clienteAtual?.telefone_limpo ||
+        clienteAtual?.telefone ||
+        sessao?.telefone_limpo ||
+        sessao?.telefone
+    );
+    form.classList.toggle('hidden', logado);
+}
+
+async function carregarSessaoPorTelefone(telefone) {
+    const remoto = await clienteSession.carregarDoFirebase(telefone);
+    if (remoto) {
+        clienteAtual = remoto;
+        userPoints = parseInt(remoto.pontos || 0, 10) || 0;
+        atualizarSaudacao();
+        atualizarPontosUI();
+        atualizarVisibilidadeLoginRapido();
+    }
+
+    const favoritosConta = await clienteSession.carregarFavoritos(telefone);
+    const favoritosCombinados = dedupeIds([...favoritos, ...favoritosConta]);
+    favoritos = favoritosCombinados;
+    localStorage.setItem('meusFavoritos', JSON.stringify(favoritos));
+    if (favoritosCombinados.length !== favoritosConta.length) {
+        await clienteSession.salvarFavoritos(favoritosCombinados, telefone);
+    }
+
+    return remoto;
+}
+
+async function loginComTelefone(telefoneDigitado) {
+    if (!clienteSession) {
+        mostrarToast('Login indisponivel no momento.', 'erro');
+        return;
+    }
+
+    const telefone = clienteSession.normalizarTelefone(telefoneDigitado);
+    if (telefone.length < 10) {
+        mostrarToast('Digite um WhatsApp valido.', 'erro');
+        return;
+    }
+
+    try {
+        const remoto = await carregarSessaoPorTelefone(telefone);
+        if (!remoto) {
+            mostrarToast('Telefone nao encontrado. Cadastre-se no perfil.', 'erro');
+            return;
+        }
+
+        const input = document.getElementById('quick-login-phone');
+        if (input) input.value = remoto.telefone || telefoneDigitado;
+        mostrarToast(`Ola, ${remoto.nome || 'cliente'}!`, 'sucesso');
+    } catch (e) {
+        console.error('Falha no login por telefone:', e);
+        mostrarToast('Nao foi possivel buscar sua conta agora.', 'erro');
     }
 }
 
@@ -215,12 +279,15 @@ function renderizarCategorias(produtos) {
     // Extrai categorias únicas e ordena
     const cats = [...new Set(produtos.map(p => p.categoria))].sort();
     
-    let html = `<button onclick="scrollToCat('topo')" class="flex-shrink-0 px-4 py-2 rounded-xl bg-gray-900 text-white font-bold text-xs shadow-md active:scale-95 transition-all snap-center">Início</button>`;
+    let html = `<button data-cat-target="topo" onclick="scrollToCat('topo')" class="flex-shrink-0 px-4 py-2 rounded-xl font-bold text-xs active:scale-95 transition-all snap-center whitespace-nowrap">Início</button>`;
 
     cats.forEach(c => {
-        html += `<button onclick="scrollToCat('cat-${sanitizarId(c)}')" class="flex-shrink-0 px-4 py-2 rounded-xl bg-white text-gray-600 font-bold text-xs shadow-sm border border-gray-100 hover:bg-gray-50 active:scale-95 transition-all snap-center whitespace-nowrap">${c}</button>`;
+        const targetId = `cat-${sanitizarId(c)}`;
+        html += `<button data-cat-target="${targetId}" onclick="scrollToCat('${targetId}')" class="flex-shrink-0 px-4 py-2 rounded-xl font-bold text-xs active:scale-95 transition-all snap-center whitespace-nowrap">${c}</button>`;
     });
     nav.innerHTML = html;
+    menuCategoriaAtual = 'topo';
+    atualizarBotoesCategoriasAtivo('topo');
 }
 
 // Renderiza a lista principal de produtos
@@ -230,6 +297,8 @@ function renderizarVitrine(lista) {
 
     if (lista.length === 0) {
         container.innerHTML = `<div class="text-center py-10 opacity-50"><p>Nenhum item encontrado.</p></div>`;
+        menuCategoriaAtual = 'topo';
+        atualizarBotoesCategoriasAtivo('topo');
         return;
     }
 
@@ -241,6 +310,8 @@ function renderizarVitrine(lista) {
         lista.forEach(p => htmlItens += cardProdutoApp(p));
         htmlItens += `</div>`;
         container.innerHTML = htmlItens;
+        menuCategoriaAtual = 'topo';
+        atualizarBotoesCategoriasAtivo('topo');
         return;
     }
 
@@ -267,6 +338,8 @@ function renderizarVitrine(lista) {
         `;
         container.appendChild(section);
     });
+
+    agendarAtualizacaoMenuCategorias();
 }
 
 // Cria o HTML de um único card de produto
@@ -577,8 +650,77 @@ function atualizarStatusLoja() {
 }
 window.scrollToCat = (id) => {
     vibrar();
-    if(id === 'topo') window.scrollTo({ top: 0, behavior: 'smooth' });
-    else { const el = document.getElementById(id); if(el) { const top = el.getBoundingClientRect().top + window.pageYOffset - 220; window.scrollTo({ top: top, behavior: 'smooth' }); } }
+    const target = id || 'topo';
+    menuCategoriaAtual = target;
+    atualizarBotoesCategoriasAtivo(target);
+
+    if (target === 'topo') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        return;
+    }
+
+    const el = document.getElementById(target);
+    const header = document.getElementById('main-header');
+    if (el) {
+        const offset = (header?.offsetHeight || 220) + 18;
+        const top = el.getBoundingClientRect().top + window.pageYOffset - offset;
+        window.scrollTo({ top, behavior: 'smooth' });
+    }
+}
+
+function atualizarBotoesCategoriasAtivo(targetId) {
+    const botoes = document.querySelectorAll('#nav-categorias [data-cat-target]');
+    botoes.forEach((btn) => {
+        const ativo = btn.getAttribute('data-cat-target') === targetId;
+        btn.classList.toggle('bg-gray-900', ativo);
+        btn.classList.toggle('text-white', ativo);
+        btn.classList.toggle('shadow-md', ativo);
+        btn.classList.toggle('bg-white', !ativo);
+        btn.classList.toggle('text-gray-600', !ativo);
+        btn.classList.toggle('shadow-sm', !ativo);
+        btn.classList.toggle('border', !ativo);
+        btn.classList.toggle('border-gray-100', !ativo);
+        btn.classList.toggle('hover:bg-gray-50', !ativo);
+    });
+
+    const nav = document.getElementById('nav-categorias');
+    const ativo = document.querySelector(`#nav-categorias [data-cat-target="${targetId}"]`);
+    if (nav && ativo) {
+        const left = ativo.offsetLeft - (nav.clientWidth / 2) + (ativo.clientWidth / 2);
+        nav.scrollTo({ left: Math.max(0, left), behavior: 'smooth' });
+    }
+}
+
+function descobrirCategoriaAtivaPorScroll() {
+    const secoes = [...document.querySelectorAll('#main-vitrine [id^="cat-"]')];
+    if (secoes.length === 0) return 'topo';
+
+    const header = document.getElementById('main-header');
+    const linhaLeitura = window.scrollY + (header?.offsetHeight || 220) + 30;
+    let ativa = 'topo';
+
+    for (const secao of secoes) {
+        if (secao.offsetTop <= linhaLeitura) ativa = secao.id;
+        else break;
+    }
+
+    return ativa;
+}
+
+function atualizarMenuCategoriasPorScroll() {
+    if (filtroFavoritosAtivo) return;
+    const ativa = descobrirCategoriaAtivaPorScroll();
+    if (ativa === menuCategoriaAtual) return;
+    menuCategoriaAtual = ativa;
+    atualizarBotoesCategoriasAtivo(ativa);
+}
+
+function agendarAtualizacaoMenuCategorias() {
+    if (scrollSpyFrame) return;
+    scrollSpyFrame = window.requestAnimationFrame(() => {
+        scrollSpyFrame = null;
+        atualizarMenuCategoriasPorScroll();
+    });
 }
 function filtrarVitrine(termo) {
     if (!termo) { renderizarVitrine(todosProdutos); document.getElementById('banners-container').classList.remove('hidden'); }
